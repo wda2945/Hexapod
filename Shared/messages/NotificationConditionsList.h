@@ -1,0 +1,36 @@
+/* 
+ * File: NotificationsConditionsList.h
+ * Author: martin
+ *
+ * Created on April 9, 2015, 8:46 PM
+ */
+
+
+//Notifications - conditions
+
+CONDITION( NULL_CONDITION, "Null")
+CONDITION( BATTERY_LOW, "Battery Low")
+CONDITION( BATTERY_CRITICAL, "Battery Critical")
+CONDITION( FRONT_LEFT_PROXIMITY, "Front Left Proximity")
+CONDITION( FRONT_CENTER_PROXIMITY, "Front Center Proximity")
+CONDITION( FRONT_RIGHT_PROXIMITY, "Front Right Proximity")
+CONDITION( REAR_LEFT_PROXIMITY, "Rear Left Proximity")
+CONDITION( REAR_CENTER_PROXIMITY, "Rear Center Proximity")
+CONDITION( REAR_RIGHT_PROXIMITY, "Rear Right Proximity")
+CONDITION( LEFT_PROXIMITY, "Left Proximity")
+CONDITION( RIGHT_PROXIMITY, "Right Proximity")
+CONDITION( FRONT_LEFT_FAR_PROXIMITY, "Left Far Proximity")
+CONDITION( FRONT_RIGHT_FAR_PROXIMITY, "Right Far Proximity")
+CONDITION( SERVOS_READY, "Servos Ready")
+CONDITION( SERVOS_WALKING, "Servos Walking")
+CONDITION( SERVOS_ERRORS, "Servos Errors")
+CONDITION( SERVOS_OFFLINE, "Servos Offline")
+CONDITION( PILOT_ENGAGED, "Pilot Engaged")
+CONDITION( PILOT_IDLE, "Pilot Idle")
+CONDITION( PILOT_FAILED, "Pilot Failed")
+CONDITION( AGENT_CONNECTED, "UDP Agent Connected")
+CONDITION( AGENT_ERRORS, "UDP Agent Errors")
+CONDITION( OVM_INIT_ERROR, "OVM Init Error")
+CONDITION( I2C_BUS_ERROR, "I2C Bus Error")
+CONDITION( ANALOG_ERROR, "Analog Error")
+CONDITION( INIT_ERROR, "Init Errors")
