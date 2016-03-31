@@ -48,7 +48,7 @@ void *LidarThread(void *arg);
 
 mraa_uart_context uartContext;
 int lidarFD;			//LIDAR uart file descriptor
-mraa_pwm_context MOTOCTL_pwm;	//LIDAR motor pwm pin
+//mraa_pwm_context MOTOCTL_pwm;	//LIDAR motor pwm pin
 
 #define ANGLE_BUCKET_DEGREES 45
 #define ANGLE_BUCKET_COUNT	(360 / ANGLE_BUCKET_DEGREES)
@@ -57,13 +57,22 @@ mraa_pwm_context MOTOCTL_pwm;	//LIDAR motor pwm pin
 #define RANGE_BUCKET_COUNT	(MAX_RANGE_BUCKET / RANGE_BUCKET_CM)
 #define SCAN_COUNT			10
 #define COUNT_THRESHOLD		6
-#define MIN_REPORT_INTERVAL 2
 
 int proximityCounts[ANGLE_BUCKET_COUNT][RANGE_BUCKET_COUNT];
 int obstacleRanges[ANGLE_BUCKET_COUNT];
 int obstacleHits[ANGLE_BUCKET_COUNT];
-int reportedRanges[ANGLE_BUCKET_COUNT];
-time_t reportedTimes[ANGLE_BUCKET_COUNT];
+ProxStatusMask_enum proxStatus[ANGLE_BUCKET_COUNT];
+
+Condition_enum proximityConditions[ANGLE_BUCKET_COUNT] = {
+		FRONT_CENTER_PROXIMITY,
+		FRONT_RIGHT_PROXIMITY,
+		RIGHT_PROXIMITY,
+		REAR_RIGHT_PROXIMITY,
+		REAR_CENTER_PROXIMITY,
+		REAR_LEFT_PROXIMITY,
+		LEFT_PROXIMITY,
+		FRONT_LEFT_PROXIMITY
+};
 
 int CheckLidarHealth();
 
@@ -107,60 +116,60 @@ int LidarInit()
 
 	DEBUGPRINT("Lidar uart %s configured\n", devicePath);
 
-//	mraa_gpio_context gpio_context = mraa_gpio_init(RPLIDAR_PWM_PIN);
-//	if (mraa_gpio_dir(gpio_context, MRAA_GPIO_OUT_HIGH) != MRAA_SUCCESS)
-//	{
-//		ERRORPRINT("RPLIDAR CTL Pin error\n");
-//	}
+	mraa_gpio_context gpio_context = mraa_gpio_init(RPLIDAR_PWM_PIN);
+	if (mraa_gpio_dir(gpio_context, MRAA_GPIO_OUT_HIGH) != MRAA_SUCCESS)
+	{
+		ERRORPRINT("RPLIDAR CTL Pin error\n");
+	}
 
-//	mraa_gpio_context gpio1_context = mraa_gpio_init(J19_9);
-//	if (mraa_gpio_dir(gpio1_context, MRAA_GPIO_IN) != MRAA_SUCCESS)
-//	{
-//		ERRORPRINT("J19_9 Pin error\n");
+	mraa_gpio_context gpio1_context = mraa_gpio_init(J19_9);
+	if (mraa_gpio_dir(gpio1_context, MRAA_GPIO_IN) != MRAA_SUCCESS)
+	{
+		ERRORPRINT("J19_9 Pin error\n");
+	}
+
+	mraa_gpio_context gpio2_context = mraa_gpio_init(J20_9);
+	if (mraa_gpio_dir(gpio2_context, MRAA_GPIO_IN) != MRAA_SUCCESS)
+	{
+		ERRORPRINT("J20_9 Pin error\n");
+	}
+
+
+//	// init pwm
+//	MOTOCTL_pwm = mraa_pwm_init(RPLIDAR_PWM_PIN);
+//	if (MOTOCTL_pwm == NULL) {
+//		ERRORPRINT("Can't create MOTOCTL PWM object\n");
+//		return -1;
 //	}
+//	else DEBUGPRINT("MOTOCTL PWM pin init() OK\n");
 //
-//	mraa_gpio_context gpio2_context = mraa_gpio_init(J20_9);
-//	if (mraa_gpio_dir(gpio2_context, MRAA_GPIO_IN) != MRAA_SUCCESS)
-//	{
-//		ERRORPRINT("J20_9 Pin error\n");
+//	// disable PWM on the selected pin
+//	if (mraa_pwm_enable(MOTOCTL_pwm, 0) != MRAA_SUCCESS) {
+//		ERRORPRINT("Can't enable MOTOCTL PWM\n");
+//		return -1;
 //	}
-
-
-	// init pwm
-	MOTOCTL_pwm = mraa_pwm_init(RPLIDAR_PWM_PIN);
-	if (MOTOCTL_pwm == NULL) {
-		ERRORPRINT("Can't create MOTOCTL PWM object\n");
-		return -1;
-	}
-	else DEBUGPRINT("MOTOCTL PWM pin init() OK\n");
-
-	// disable PWM on the selected pin
-	if (mraa_pwm_enable(MOTOCTL_pwm, 0) != MRAA_SUCCESS) {
-		ERRORPRINT("Can't enable MOTOCTL PWM\n");
-		return -1;
-	}
-	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
-
-	//period = 50Hz
-	if (mraa_pwm_period_ms(MOTOCTL_pwm, 20) != MRAA_SUCCESS)  {
-		ERRORPRINT("Can't set MOTOCTL PWM period\n");
-		return -1;
-	}
-	else DEBUGPRINT("MOTOCTL PWM pin period = 20mS\n");
-
-	//duty = 100%
-	if (mraa_pwm_pulsewidth_ms(MOTOCTL_pwm, 19) != MRAA_SUCCESS)  {
-		ERRORPRINT("Can't set MOTOCTL PWM pulse-width\n");
-		return -1;
-	}
-	else DEBUGPRINT("MOTOCTL PWM pin pulse-width = 19mS\n");
-
-	// enable PWM on the selected pin
-	if (mraa_pwm_enable(MOTOCTL_pwm, 1) != MRAA_SUCCESS) {
-		ERRORPRINT("Can't enable MOTOCTL PWM\n");
-		return -1;
-	}
-	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
+//	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
+//
+//	//period = 50Hz
+//	if (mraa_pwm_period_ms(MOTOCTL_pwm, 20) != MRAA_SUCCESS)  {
+//		ERRORPRINT("Can't set MOTOCTL PWM period\n");
+//		return -1;
+//	}
+//	else DEBUGPRINT("MOTOCTL PWM pin period = 20mS\n");
+//
+//	//duty = 100%
+//	if (mraa_pwm_pulsewidth_ms(MOTOCTL_pwm, 19) != MRAA_SUCCESS)  {
+//		ERRORPRINT("Can't set MOTOCTL PWM pulse-width\n");
+//		return -1;
+//	}
+//	else DEBUGPRINT("MOTOCTL PWM pin pulse-width = 19mS\n");
+//
+//	// enable PWM on the selected pin
+//	if (mraa_pwm_enable(MOTOCTL_pwm, 1) != MRAA_SUCCESS) {
+//		ERRORPRINT("Can't enable MOTOCTL PWM\n");
+//		return -1;
+//	}
+//	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
 
 	//create thread to receive RPLIDAR messages
 	pthread_t thread;
@@ -173,16 +182,21 @@ int LidarInit()
 	return 0;
 }
 
-void LidarProcessMessage(psMessage_t *msg)
-{
-	//none at present
-}
-
 void *LidarThread(void *arg)
 {
 	int scanCount = SCAN_COUNT;
 
 	DEBUGPRINT("Lidar thread ready\n");
+
+	//zero out the data
+	int i, j;
+	for (i = 0; i< ANGLE_BUCKET_COUNT; i++)
+	{
+		for (j=0; j< RANGE_BUCKET_COUNT; j++)
+		{
+			proximityCounts[i][j] = 0;
+		}
+	}
 
 	//check health
 	CheckLidarHealth();
@@ -192,6 +206,7 @@ void *LidarThread(void *arg)
 
 	//start scan
 	DEBUGPRINT("LIDAR startScan()\n");
+
     while (startRPLidarScan(false) != RESULT_OK)
     {
 		ERRORPRINT("startScan() fail\n");
@@ -227,11 +242,10 @@ void *LidarThread(void *arg)
 
 		if (scanCount <= 0)
 		{
-			int i,j;
-
 			scanCount = SCAN_COUNT;
 
 			//look for obstacles
+			//for each angle bucket
 			for (i=0; i<ANGLE_BUCKET_COUNT; i++)
 			{
 				int maxCount = -1;
@@ -250,45 +264,46 @@ void *LidarThread(void *arg)
 					//obstacle to report
 					obstacleRanges[i] = range;
 					obstacleHits[i] = maxCount;
+					SetCondition(proximityConditions[i]);
+
+					if (range < closeRange)
+					{
+						proxStatus[i] = PROX_ACTIVE_MASK | PROX_CLOSE_MASK;
+					}
+					else
+					{
+						proxStatus[i] = PROX_ACTIVE_MASK | PROX_FAR_MASK;
+					}
+
 				}
 				else
 				{
 					//no obstacle to report
 					obstacleRanges[i] = -1;
 					obstacleHits[i] = 0;
-				}
-			}
-			//send proximity message
-			for (i=0; i<ANGLE_BUCKET_COUNT; i++)
-			{
-				if (obstacleHits[i])
-				{
-					if ((reportedRanges[i] != obstacleRanges[i])
-						&& ((reportedTimes[i] + MIN_REPORT_INTERVAL) < time(NULL)))
-					{
-						//send report
-						reportedRanges[i] = obstacleRanges[i];
-						reportedTimes[i] = time(NULL);
-					}
-				}
-			}
-
-			//zero out counting array
-			for (i=0; i<ANGLE_BUCKET_COUNT; i++)
-			{
-				for (j=0; j<RANGE_BUCKET_COUNT; j++)
-				{
-					proximityCounts[i][j] = 0;
+					CancelCondition(proximityConditions[i]);
+					proxStatus[i] = PROX_ACTIVE_MASK;
 				}
 			}
 		}
-
 	}
 	return 0;
 }
 
-bool proximityStatus(unsigned int sector, unsigned int proximity)
+bool proximityStatus(ProxSectorMask_enum sector, ProxStatusMask_enum proximity)
 {
+	int i;
+	for (i=0; i< ANGLE_BUCKET_COUNT; i++)
+	{
+		//check each sector
+		uint8_t sectorMask = 0x1 << i;
+
+		if (sector & sectorMask)
+		{
+			//interested in this one
+			if (proxStatus[i] & proximity) return true;
+		}
+	}
 	return false;
 }
 

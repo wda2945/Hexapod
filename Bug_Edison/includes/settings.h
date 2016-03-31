@@ -14,6 +14,8 @@ settingmacro("defSpeed", defSpeed, 1, 100, 25)
 
 settingmacro("appReportInterval", appReportInterval, 1000, 10000, 5000)
 
+settingmacro("closeRange", closeRange, 10, 100, 30)
+
 //navigator
 settingmacro("Nav Loop mS", navLoopDelay, 100, 1000, 500)
 settingmacro("Nav IMU Loop mS", imuLoopDelay, 100, 5000, 500)
