@@ -61,8 +61,6 @@ void RouteMessage(psMessage_t *msg)
 		Autopilot_PROCESS_MESSAGE(msg);
 		Behavior_PROCESS_MESSAGE(msg);
 		Dancer_PROCESS_MESSAGE(msg);
-		Gripper_PROCESS_MESSAGE(msg);
-		Lidar_PROCESS_MESSAGE(msg);
 		Responder_PROCESS_MESSAGE(msg);
 		break;
 
@@ -79,9 +77,6 @@ void RouteMessage(psMessage_t *msg)
 		break;
 	case DANCE_TOPIC:			//inputs to dancer
 		Dancer_PROCESS_MESSAGE(msg);
-		break;
-	case GRIPPER_TOPIC:
-		Gripper_PROCESS_MESSAGE(msg);
 		break;
 	case ARBOTIX_TOPIC:			//inputs to Arbotix
 		Arbotix_PROCESS_MESSAGE(msg);
