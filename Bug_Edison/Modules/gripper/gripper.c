@@ -44,6 +44,9 @@ void *GripperThread(void *arg);
 
 mraa_pwm_context gripper_pwm;
 
+GripperState_enum gripperState = GRIPPER_CLOSED;
+GripperState_enum gripperGoal = GRIPPER_CLOSED;
+
 int GripperInit()
 {
 	gripperDebugFile = fopen_logfile("gripper");
@@ -69,11 +72,11 @@ int GripperInit()
 	}
 	else DEBUGPRINT("Gripper PWM pin period = 20mS\n");
 
-	if (mraa_pwm_pulsewidth_us(gripper_pwm, 1500) != MRAA_SUCCESS)  {
+	if (mraa_pwm_pulsewidth_us(gripper_pwm, CLOSED_PULSE_LENGTH) != MRAA_SUCCESS)  {
 		ERRORPRINT("Can't set pulse-width\n");
 		return -1;
 	}
-	else DEBUGPRINT("Gripper PWM pulse width = 1500uS\n");
+	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", CLOSED_PULSE_LENGTH);
 
 	// enable PWM on the selected pin
 	if (mraa_pwm_enable(gripper_pwm, 1) != MRAA_SUCCESS) {
@@ -82,148 +85,116 @@ int GripperInit()
 	}
 	else DEBUGPRINT("Gripper PWM enabled\n");
 
-//	sleep(1);
-//
-//	if (mraa_pwm_pulsewidth_us(gripper_pwm, 2000) != MRAA_SUCCESS)  {
-//		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("Gripper PWM pulse width = 2000uS\n");
-//
-//	sleep(1);
+	////////////////////////////////// DEBUG
 
-//	//period = 20 mS (50Hz), duty = 1.5 mS
-//	if (mraa_pwm_pulsewidth_us(gripper_pwm, 1500) != MRAA_SUCCESS)  {
-//		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("Gripper PWM pulse width = 1500uS\n");
+while(1)
+{
+	sleep(1);
 
-//	pthread_t thread;
-//
-//	//create agent Rx thread
-//	int s = pthread_create(&thread, NULL, GripperThread, NULL);
-//	if (s != 0) {
-//		ERRORPRINT("pthread_create() failed. %s\n", strerror(errno));
-//		return -1;
-//	}
+	if (mraa_pwm_pulsewidth_us(gripper_pwm, OPEN_PULSE_LENGTH) != MRAA_SUCCESS)  {
+		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
+		return -1;
+	}
+	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", OPEN_PULSE_LENGTH);
+
+	sleep(1);
+
+	//period = 20 mS (50Hz), duty = 1.5 mS
+	if (mraa_pwm_pulsewidth_us(gripper_pwm, CLOSED_PULSE_LENGTH) != MRAA_SUCCESS)  {
+		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
+		return -1;
+	}
+	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", CLOSED_PULSE_LENGTH);
+
+}
+	//////////////////////////// END DEBUG
+
+	pthread_t thread;
+	//create agent Rx thread
+	int s = pthread_create(&thread, NULL, GripperThread, NULL);
+	if (s != 0) {
+		ERRORPRINT("pthread_create() failed. %s\n", strerror(errno));
+		return -1;
+	}
 
 	return 0;
 }
 
-void GripperProcessMessage(psMessage_t *msg)
+ActionResult_enum MoveGripper(GripperState_enum action)
 {
-	CopyMessageToQ(&gripperQueue, msg);
+	if (action == gripperState)
+	{
+		return ACTION_SUCCESS;
+	}
+	else
+	{
+		gripperGoal = action;
+		return ACTION_RUNNING;
+	}
 }
-
-#define min(x,y) ((x) > (y) ? (y) : (x))
-#define max(x,y) ((x) > (y) ? (x) : (y))
-
-#define SERVO_MIN 500
-#define SERVO_MAX 2500
-#define SERVO_RANGE (SERVO_MAX - SERVO_MIN)
-#define SERVO_MID 1500
-#define SERVO_PERIOD 20
-#define SERVO_LOOP	 200
 
 void *GripperThread(void *arg)
 {
-	struct timespec requested_time;
-	struct timespec remaining;
 
-	requested_time.tv_nsec = SERVO_PERIOD * 1000000;
-	requested_time.tv_sec = 0;
+	int current, increment;
 
-	int current, goal, increment;
-	int i;
-	current = goal = SERVO_MID;
+	current = CLOSED_PULSE_LENGTH;
 
 	DEBUGPRINT("Gripper thread\n");
 
 	while (1)
 	{
-#define SERVO_STEPS 50
-#define SERVO_INC	(SERVO_RANGE / (2 * SERVO_STEPS))
-		for (i=0; i<(SERVO_STEPS * 4); i++)
+		if (gripperState != gripperGoal)
 		{
-			int openstage = i / SERVO_STEPS;
-			int step = i % SERVO_STEPS;
-
-			switch(openstage)
+			switch (gripperSpeed)
 			{
-			case 0:
-				goal = SERVO_MID + SERVO_INC * step;
+			case GRIPPER_SLOW:
+				increment = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 20;
 				break;
-			case 1:
-				goal = SERVO_MAX - SERVO_INC * step;
+			case GRIPPER_FAST:
+				increment = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 10;
 				break;
-			case 2:
-				goal = SERVO_MID - SERVO_INC * step;
+			}
+
+
+			switch (gripperGoal)
+			{
+			case GRIPPER_CLOSED:
+				gripperState = GRIPPER_MOVING;
+
+				for (; current > CLOSED_PULSE_LENGTH; current -= increment)
+				{
+					if (mraa_pwm_pulsewidth_us(gripper_pwm, current) != MRAA_SUCCESS)  {
+						ERRORPRINT("Can't set Gripper PWM pulse-width: %i\n", current);
+						break;
+					}
+					else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", current);
+					usleep(100000);
+				}
+				gripperState = GRIPPER_CLOSED;
+				break;
+			case GRIPPER_OPEN:
+				gripperState = GRIPPER_MOVING;
+
+				for (; current > OPEN_PULSE_LENGTH; current -= increment)
+				{
+					if (mraa_pwm_pulsewidth_us(gripper_pwm, current) != MRAA_SUCCESS)  {
+						ERRORPRINT("Can't set Gripper PWM pulse-width: %i\n", current);
+						break;
+					}
+					else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", current);
+					usleep(100000);
+				}
+				gripperState = GRIPPER_OPEN;
 				break;
 			default:
-				goal = SERVO_MIN + SERVO_INC * step;
 				break;
 			}
-			if (mraa_pwm_pulsewidth_us(gripper_pwm, goal) != MRAA_SUCCESS) {
-				ERRORPRINT("Can't set duty\n");
-				sleep(1);
-			}
-			nanosleep (&requested_time, &remaining);
+
 		}
-		sleep(1);
-	}
-
-	//loop
-	while (1)
-	{
-		psMessage_t *rxMessage = GetNextMessage(&gripperQueue);
-
-		switch(rxMessage->header.messageType)
-		{
-		case GRIP:
-		{
-			float opening = rxMessage->twoFloatPayload.opening;
-			opening = max(min(opening, 1.0), 0.0);
-			float speed = rxMessage->twoFloatPayload.speed;
-			speed = max(min(speed, 10.0), 0.5);		//seconds from open to closed
-
-			goal = (SERVO_MIN + (SERVO_MAX - SERVO_MIN) * opening);
-
-			DEBUGPRINT("Gripper to: %0.1f, speed %0.1f", opening, speed);
-
-			increment = (SERVO_LOOP / 1000) * (SERVO_MAX - SERVO_MIN) / speed;	//mS change per loop
-
-			while (goal != current)
-			{
-				if (abs(goal - current) <= increment)
-				{
-					current = goal;
-				}
-				else
-				{
-					if (goal > current)
-					{
-						current += increment;
-					}
-					else
-					{
-						current -= increment;
-					}
-				}
-
-				if (mraa_pwm_pulsewidth_us(gripper_pwm, current) != MRAA_SUCCESS) {
-					ERRORPRINT("Can't set duty\n");
-					goal = current;
-				}
-
-				nanosleep (&requested_time, &remaining);
-			}
-		}
-			break;
-		default:
-			break;
-		}
-
+		usleep(100000);
 	}
 	return 0;
 }
+
+GripperSpeed_enum gripperSpeed;
