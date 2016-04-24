@@ -58,8 +58,12 @@ BrokerQueue_t agentQueue = BROKER_Q_INITIALIZER;	//queue for messages to be sent
 void *AgentListenThread(void *arg);					//listen thread spawns tx & rx threads for each connect
 pthread_t listenThread;
 pthread_t txThread;
+ptherad_t pingThread;
+
 void *AgentRxThread(void *arg);						//rx thread function
 void *AgentTxThread(void *arg);						//tx thread function
+
+void *AgentPingThread(void *arg);					//thread send ping to router
 
 #define LISTEN_PORT_NUMBER 50000
 
@@ -82,6 +86,13 @@ int AgentInit()
 		return -1;
 	}
 
+	//create agent Ping thread
+	s = pthread_create(&pingThread, NULL, AgentPingThread, NULL);
+	if (s != 0) {
+		LogError("Agent PingThread create failed. %i\n", strerror(s));
+		return -1;
+	}
+	
 	return 0;
 }
 
@@ -466,3 +477,20 @@ void *AgentTxThread(void *arg)
 	return 0;
 }
 
+void *AgentPingThread(void *arg)
+{
+	while (1)
+	{
+		if (pingServer("192.168.1.1") > 0)
+		{
+			SetCondition(WIFI_CONNECTED);
+		}
+		else
+		{
+			CancelCondition(WIFI_CONNECTED);
+		}
+
+		sleep(10);
+	}
+	return 0;
+}
