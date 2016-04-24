@@ -45,6 +45,7 @@
     [self addChildViewController:[MasterViewController getMasterViewController].rcController];
     [self addChildViewController:[MasterViewController getMasterViewController].settingsController];
     [self addChildViewController:[MasterViewController getMasterViewController].systemViewController];
+    [self addChildViewController:[MasterViewController getMasterViewController].subsystemViewController];
     
     startFrame = self.view.bounds;
     startFrame.origin.x += startFrame.size.width;

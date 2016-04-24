@@ -16,7 +16,7 @@
 #define CONNECTED [UIImage imageNamed:@"online.png"]
 
 #define SERVER_NAME "hexapod.local"
-#define IP_ADDRESS	210
+#define IP_ADDRESS	209
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate, NSNetServiceDelegate, NSNetServiceBrowserDelegate>
 

@@ -54,7 +54,12 @@ static MasterViewController *me;
     self.rcController           = [_storyBoard instantiateViewControllerWithIdentifier:@"RC"];
     self.settingsController     = [[SettingsViewController alloc] init];
     self.systemViewController   = [[SystemViewController alloc] init];
-    self.subsystemViewController = nil;
+    self.subsystemViewController = [[SubsystemViewController alloc] init];
+    
+    [_sourceCodes setObject:_subsystemViewController forKey:[NSNumber numberWithInt: OVERMIND]];
+    [_subsystems  setObject:_subsystemViewController forKey:_subsystemViewController.name];
+    
+    [_subsystemViewController addListener: self ];
     
     self.viewControllers = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                             _behaviorViewController, @"Behavior",
@@ -65,6 +70,7 @@ static MasterViewController *me;
                             _rcController,@"RC",
                             _settingsController, @"Settings",
                             _systemViewController, @"System",
+                            _subsystemViewController, _subsystemViewController.name,
                    nil];
     
     currentPage = SYSTEM_PAGE;
@@ -229,8 +235,7 @@ static MasterViewController *me;
                 {
                     cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"SubsystemCell"];
                 }
-                NSString *ssName = [_subsystems.allKeys objectAtIndex:indexPath.row];
-                cell.textLabel.text = ssName;
+                cell.textLabel.text = @"Hexapod";
                 cell.imageView.image = [UIImage imageNamed: @"bug-32.png"];
             }
             else return nil;
@@ -257,34 +262,34 @@ static MasterViewController *me;
 
 -(void) didReceiveMsg: (PubSubMsg*) message
 {
-    //do we have this one?
-    SubsystemViewController *ss = self.subsystemViewController;
-    if (!ss) {
-        //new one
-        if (self.collectionController == nil)
-        {
-            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-                AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-                self.collectionController = delegate.collectionController;
-            }
-            else
-            {
-                self.collectionController = self;
-            }
-        }
-        
-        self.subsystemViewController = ss = [[SubsystemViewController alloc] initWithMessage: message];
-        
-        [_sourceCodes setObject:ss forKey:[NSNumber numberWithInt: message.msg.header.source]];
-        [_subsystems  setObject:ss forKey:ss.name];
-        
-        [ss addListener: self ];
-        [self.viewControllers setObject:ss forKey:ss.name];
-        
-        [_collectionController addSubsystem: ss];
-        [(UITableView*) self.view reloadData];
-    }
-    
+//    //do we have this one?
+//    SubsystemViewController *ss = self.subsystemViewController;
+//    if (!ss) {
+//        //new one
+//        if (self.collectionController == nil)
+//        {
+//            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+//                AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+//                self.collectionController = delegate.collectionController;
+//            }
+//            else
+//            {
+//                self.collectionController = self;
+//            }
+//        }
+//        
+//        self.subsystemViewController = ss = [[SubsystemViewController alloc] initWithMessage: message];
+//        
+//        [_sourceCodes setObject:ss forKey:[NSNumber numberWithInt: message.msg.header.source]];
+//        [_subsystems  setObject:ss forKey:ss.name];
+//        
+//        [ss addListener: self ];
+//        [self.viewControllers setObject:ss forKey:ss.name];
+//        
+//        [_collectionController addSubsystem: ss];
+//        [(UITableView*) self.view reloadData];
+//    }
+//    
     [_viewControllers.allValues makeObjectsPerformSelector:@selector(didReceiveMsg:) withObject:message];
 }
 -(void) connection: (bool) conn

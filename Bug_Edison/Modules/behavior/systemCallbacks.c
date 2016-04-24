@@ -83,6 +83,8 @@ static int SystemAction(lua_State *L)
 
 	SystemAction_enum actionCode 	= lua_tointeger(L, 1);
 
+	lastLuaCall = systemActionList[actionCode];
+
 	LogInfo("SystemAction: %s", systemActionList[actionCode]);
 
 	switch (actionCode)

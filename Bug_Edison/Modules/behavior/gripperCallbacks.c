@@ -70,6 +70,8 @@ static int GripperAction(lua_State *L)
 {
 	GripperAction_enum actionCode 	= lua_tointeger(L, 1);
 	
+	lastLuaCall = gripperActionList[actionCode];
+
 	LogRoutine("GripperAction: %s", gripperActionList[actionCode]);
 
 	switch (actionCode)

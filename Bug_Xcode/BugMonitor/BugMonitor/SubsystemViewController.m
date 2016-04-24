@@ -56,6 +56,23 @@
     }
 }
 
+- (SubsystemViewController*) init
+{
+    if ([super init]){
+        self.listeners = [NSMutableArray array];
+        
+        self.name = @"OVM";
+        
+        self.stats      = [NSMutableDictionary dictionary];
+        self.configured = NO;
+        self.initErrors = false;
+        
+        [self sendForConfig];
+        latency = -1;
+    }
+    return self;
+}
+
 - (SubsystemViewController*) initWithMessage: (PubSubMsg*) message //hopefully, SS_ONLINE message with SS name
 {
     if ([super init]){

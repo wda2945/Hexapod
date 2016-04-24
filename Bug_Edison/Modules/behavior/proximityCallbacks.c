@@ -83,7 +83,9 @@ int InitProximityCallbacks(lua_State *L)
 static int ProximityAction(lua_State *L)
 {
 	ProximityAction_enum actionCode 	= lua_tointeger(L, 1);
-	
+
+	lastLuaCall = proximityActionList[actionCode];
+
 	LogRoutine("ProximityAction: %s", proximityActionList[actionCode]);
 
 	switch (actionCode)
