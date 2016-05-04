@@ -29,12 +29,12 @@
 FILE *gripperDebugFile;
 
 #ifdef GRIPPER_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(gripperDebugFile, __VA_ARGS__);fflush(gripperDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(gripperDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(gripperDebugFile, __VA_ARGS__);fflush(gripperDebugFile);
+#define DEBUGPRINT(...) tfprintf(gripperDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(gripperDebugFile, __VA_ARGS__);fflush(gripperDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(gripperDebugFile, __VA_ARGS__);
 
 //queue for messages
 BrokerQueue_t gripperQueue = BROKER_Q_INITIALIZER;
@@ -70,44 +70,26 @@ int GripperInit()
 		ERRORPRINT("Can't set Gripper PWM period\n");
 		return -1;
 	}
-	else DEBUGPRINT("Gripper PWM pin period = 20mS\n");
+	else {
+		DEBUGPRINT("Gripper PWM pin period = 20mS\n");
+	}
 
 	if (mraa_pwm_pulsewidth_us(gripper_pwm, CLOSED_PULSE_LENGTH) != MRAA_SUCCESS)  {
 		ERRORPRINT("Can't set pulse-width\n");
 		return -1;
 	}
-	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", CLOSED_PULSE_LENGTH);
+	else {
+		DEBUGPRINT("Gripper PWM pulse width = %iuS\n", CLOSED_PULSE_LENGTH);
+	}
 
 	// enable PWM on the selected pin
 	if (mraa_pwm_enable(gripper_pwm, 1) != MRAA_SUCCESS) {
 		ERRORPRINT("Can't enable Gripper PWM\n");
 		return -1;
 	}
-	else DEBUGPRINT("Gripper PWM enabled\n");
-
-	////////////////////////////////// DEBUG
-
-while(1)
-{
-	sleep(1);
-
-	if (mraa_pwm_pulsewidth_us(gripper_pwm, OPEN_PULSE_LENGTH) != MRAA_SUCCESS)  {
-		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
-		return -1;
+	else {
+		DEBUGPRINT("Gripper PWM enabled\n");
 	}
-	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", OPEN_PULSE_LENGTH);
-
-	sleep(1);
-
-	//period = 20 mS (50Hz), duty = 1.5 mS
-	if (mraa_pwm_pulsewidth_us(gripper_pwm, CLOSED_PULSE_LENGTH) != MRAA_SUCCESS)  {
-		ERRORPRINT("Can't set Gripper PWM pulse-width\n");
-		return -1;
-	}
-	else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", CLOSED_PULSE_LENGTH);
-
-}
-	//////////////////////////// END DEBUG
 
 	pthread_t thread;
 	//create agent Rx thread
@@ -136,61 +118,63 @@ ActionResult_enum MoveGripper(GripperState_enum action)
 void *GripperThread(void *arg)
 {
 
-	int current, increment;
+	int currentPW, stepPW;
 
-	current = CLOSED_PULSE_LENGTH;
+	currentPW = CLOSED_PULSE_LENGTH;
 
 	DEBUGPRINT("Gripper thread\n");
 
 	while (1)
 	{
+		if (gripperCycle)
+		{
+			if (gripperState == GRIPPER_CLOSED)
+			{
+				gripperGoal = GRIPPER_OPEN;
+			}
+			else if (gripperState == GRIPPER_OPEN)
+			{
+				gripperGoal = GRIPPER_CLOSED;
+			}
+		}
+
 		if (gripperState != gripperGoal)
 		{
-			switch (gripperSpeed)
+			if (gripperState != GRIPPER_MOVING)
 			{
-			case GRIPPER_SLOW:
-				increment = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 20;
-				break;
-			case GRIPPER_FAST:
-				increment = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 10;
-				break;
+				switch (gripperSpeed)
+				{
+				case GRIPPER_SLOW:
+					stepPW = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 100;
+					break;
+				case GRIPPER_FAST:
+					stepPW = (OPEN_PULSE_LENGTH - CLOSED_PULSE_LENGTH) / 50;
+					break;
+				}
+				gripperState = GRIPPER_MOVING;
 			}
-
 
 			switch (gripperGoal)
 			{
 			case GRIPPER_CLOSED:
-				gripperState = GRIPPER_MOVING;
-
-				for (; current > CLOSED_PULSE_LENGTH; current -= increment)
-				{
-					if (mraa_pwm_pulsewidth_us(gripper_pwm, current) != MRAA_SUCCESS)  {
-						ERRORPRINT("Can't set Gripper PWM pulse-width: %i\n", current);
-						break;
-					}
-					else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", current);
-					usleep(100000);
-				}
-				gripperState = GRIPPER_CLOSED;
+				if (currentPW > CLOSED_PULSE_LENGTH) currentPW -= stepPW;
+				else gripperState = GRIPPER_CLOSED;
 				break;
 			case GRIPPER_OPEN:
-				gripperState = GRIPPER_MOVING;
-
-				for (; current > OPEN_PULSE_LENGTH; current -= increment)
-				{
-					if (mraa_pwm_pulsewidth_us(gripper_pwm, current) != MRAA_SUCCESS)  {
-						ERRORPRINT("Can't set Gripper PWM pulse-width: %i\n", current);
-						break;
-					}
-					else DEBUGPRINT("Gripper PWM pulse width = %iuS\n", current);
-					usleep(100000);
-				}
-				gripperState = GRIPPER_OPEN;
+				if (currentPW < OPEN_PULSE_LENGTH) currentPW += stepPW;
+				else gripperState = GRIPPER_OPEN;
 				break;
 			default:
 				break;
 			}
 
+			if (mraa_pwm_pulsewidth_us(gripper_pwm, currentPW) != MRAA_SUCCESS)  {
+				ERRORPRINT("Can't set Gripper PWM pulse-width: %i\n", currentPW);
+				break;
+			}
+			else {
+				DEBUGPRINT("Gripper PWM pulse width = %iuS\n", currentPW);
+			}
 		}
 		usleep(100000);
 	}
