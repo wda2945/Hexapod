@@ -28,9 +28,9 @@ messagemacro(CONDITIONS,PS_QOS1,CONDITIONS_TOPIC,PS_MASK_PAYLOAD,"Conditions")  
 
 //config
 messagemacro(CONFIG,PS_QOS2,ANNOUNCEMENTS_TOPIC,PS_CONFIG_PAYLOAD,"Send Config")            //send available settings and options
-messagemacro(SETTING,PS_QOS1,RESPONSE_TOPIC,PS_SETTING_PAYLOAD,"Setting")
-messagemacro(OPTION,PS_QOS1,RESPONSE_TOPIC,PS_OPTION_PAYLOAD,"Option")
-messagemacro(CONFIG_DONE,PS_QOS1,RESPONSE_TOPIC,PS_CONFIG_PAYLOAD,"Config Sent")       		//sent available settings and options
+messagemacro(SETTING,PS_QOS1,CONFIG_TOPIC,PS_SETTING_PAYLOAD,"Setting")
+messagemacro(OPTION,PS_QOS1,CONFIG_TOPIC,PS_OPTION_PAYLOAD,"Option")
+messagemacro(CONFIG_DONE,PS_QOS1,CONFIG_TOPIC,PS_CONFIG_PAYLOAD,"Config Sent")       		//sent available settings and options
 messagemacro(NEW_SETTING,PS_QOS1,ANNOUNCEMENTS_TOPIC,PS_SETTING_PAYLOAD,"New Setting")      //change setting (float)
 messagemacro(SET_OPTION,PS_QOS1,ANNOUNCEMENTS_TOPIC,PS_OPTION_PAYLOAD,"Set Option")         //change option  (int/bool)
 
@@ -43,7 +43,7 @@ messagemacro(BATTERY,PS_QOS1,SYS_REPORT_TOPIC,PS_BATTERY_PAYLOAD,"Battery")
 messagemacro(FLOAT_DATA,PS_QOS3,SYS_REPORT_TOPIC,PS_NAME_FLOAT_PAYLOAD,"fData")
 messagemacro(INT_DATA,PS_QOS3,SYS_REPORT_TOPIC,PS_NAME_INT_PAYLOAD,"iData")
 
-//raw sensors (sensor -> overmind)
+//raw sensors (sensor -> navigator)
 messagemacro(IMU_REPORT,PS_QOS3,RAW_NAV_TOPIC,PS_3FLOAT_PAYLOAD,"IMU")
 messagemacro(ODOMETRY,PS_QOS2,RAW_NAV_TOPIC,PS_ODOMETRY_PAYLOAD,"Odometry")
 
@@ -63,7 +63,7 @@ messagemacro(GRIP,PS_QOS2,GRIPPER_TOPIC,PS_2FLOAT_PAYLOAD,"Grip")
 
 //OVM reports (-> App)
 messagemacro(ACTIVITY,PS_QOS1,SYS_REPORT_TOPIC,PS_BEHAVIOR_STATUS,"Active Behavior")
-messagemacro(SCRIPT,PS_QOS1,SYS_REPORT_TOPIC,PS_NAME_PAYLOAD,"Available Script")
+messagemacro(SCRIPT,PS_QOS1,CONFIG_TOPIC,PS_NAME_PAYLOAD,"Available Script")
 
 //OVM script control
 messagemacro(ACTIVATE,PS_QOS1,ACTION_TOPIC,PS_NAME_PAYLOAD,"Execute Script")

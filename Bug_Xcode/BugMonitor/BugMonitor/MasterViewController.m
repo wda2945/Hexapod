@@ -21,7 +21,7 @@
 @end
 
 //pages of App - excluding subsystems
-enum { SYSTEM_PAGE, CONDITIONS_PAGE, BEHAVIOR_PAGE, /* OPTIONS_PAGE, SETTINGS_PAGE, */ DATA_PAGE, RC_PAGE, LOG_PAGE, PAGE_COUNT};
+enum { SYSTEM_PAGE, CONDITIONS_PAGE1, CONDITIONS_PAGE2, CONDITIONS_PAGE3, BEHAVIOR_PAGE, RC_PAGE, LOG_PAGE, PAGE_COUNT};
 
 static MasterViewController *me;
 
@@ -47,14 +47,13 @@ static MasterViewController *me;
     }
 
     self.behaviorViewController     = [[BehaviorViewController alloc] init];
-    self.conditionsViewController   = [[ConditionsViewController alloc] init];
-    self.dataController         = [[DataViewController alloc] init];
-    self.logViewController      = [[LogViewController alloc] init];
-    self.optionsController      = [[OptionsViewController alloc] init];
-    self.rcController           = [_storyBoard instantiateViewControllerWithIdentifier:@"RC"];
-    self.settingsController     = [[SettingsViewController alloc] init];
-    self.systemViewController   = [[SystemViewController alloc] init];
-    self.subsystemViewController = [[SubsystemViewController alloc] init];
+    self.conditionsViewController1  = [[ConditionsViewController alloc] initForList: CONDITIONS_STATUS];
+    self.conditionsViewController2  = [[ConditionsViewController alloc] initForList: CONDITIONS_PROXIMITY];
+    self.conditionsViewController3  = [[ConditionsViewController alloc] initForList: CONDITIONS_ERRORS];
+    self.logViewController          = [[LogViewController alloc] init];
+    self.rcController               = [_storyBoard instantiateViewControllerWithIdentifier:@"RC"];
+    self.systemViewController       = [[SystemViewController alloc] init];
+    self.subsystemViewController    = [[SubsystemViewController alloc] init];
     
     [_sourceCodes setObject:_subsystemViewController forKey:[NSNumber numberWithInt: OVERMIND]];
     [_subsystems  setObject:_subsystemViewController forKey:_subsystemViewController.name];
@@ -63,12 +62,11 @@ static MasterViewController *me;
     
     self.viewControllers = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                             _behaviorViewController, @"Behavior",
-                            _conditionsViewController, @"Conditions",
-                            _dataController, @"Data",
+                            _conditionsViewController1, @"Conditions1",
+                            _conditionsViewController2, @"Conditions2",
+                            _conditionsViewController3, @"Conditions3",
                             _logViewController, @"SysLog",
-                            _optionsController, @"Options",
                             _rcController,@"RC",
-                            _settingsController, @"Settings",
                             _systemViewController, @"System",
                             _subsystemViewController, _subsystemViewController.name,
                    nil];
@@ -200,20 +198,16 @@ static MasterViewController *me;
                     cell.textLabel.text = @"Direct Control";
                     cell.imageView.image = [UIImage imageNamed:@"rc.png"];
                     break;
-                case DATA_PAGE:
-                    cell.textLabel.text = @"Data";
-                    cell.imageView.image = [UIImage imageNamed:@"info.png"];
+                case CONDITIONS_PAGE1:
+                    cell.textLabel.text = @"Conditions: Status";
+                    cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
                     break;
-//                case OPTIONS_PAGE:
-//                    cell.textLabel.text = @"Options";
-//                    cell.imageView.image = [UIImage imageNamed:@"option.png"];
-//                    break;
-//                case SETTINGS_PAGE:
-//                    cell.textLabel.text = @"Settings";
-//                    cell.imageView.image = [UIImage imageNamed:@"setting.png"];
-//                    break;
-                case CONDITIONS_PAGE:
-                    cell.textLabel.text = @"Conditions";
+                case CONDITIONS_PAGE2:
+                    cell.textLabel.text = @"Conditions: Proximity";
+                    cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
+                    break;
+                case CONDITIONS_PAGE3:
+                    cell.textLabel.text = @"Conditions: Errors";
                     cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
                     break;
                 case BEHAVIOR_PAGE:
@@ -237,6 +231,15 @@ static MasterViewController *me;
                 }
                 cell.textLabel.text = @"Hexapod";
                 cell.imageView.image = [UIImage imageNamed: @"bug-32.png"];
+                
+                if (_subsystemViewController.configured)
+                {
+                    cell.accessoryType = UITableViewCellAccessoryCheckmark;
+                }
+                else
+                {
+                    cell.accessoryType = UITableViewCellAccessoryNone;
+                }
             }
             else return nil;
             break;
@@ -262,36 +265,9 @@ static MasterViewController *me;
 
 -(void) didReceiveMsg: (PubSubMsg*) message
 {
-//    //do we have this one?
-//    SubsystemViewController *ss = self.subsystemViewController;
-//    if (!ss) {
-//        //new one
-//        if (self.collectionController == nil)
-//        {
-//            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-//                AppDelegate *delegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
-//                self.collectionController = delegate.collectionController;
-//            }
-//            else
-//            {
-//                self.collectionController = self;
-//            }
-//        }
-//        
-//        self.subsystemViewController = ss = [[SubsystemViewController alloc] initWithMessage: message];
-//        
-//        [_sourceCodes setObject:ss forKey:[NSNumber numberWithInt: message.msg.header.source]];
-//        [_subsystems  setObject:ss forKey:ss.name];
-//        
-//        [ss addListener: self ];
-//        [self.viewControllers setObject:ss forKey:ss.name];
-//        
-//        [_collectionController addSubsystem: ss];
-//        [(UITableView*) self.view reloadData];
-//    }
-//    
     [_viewControllers.allValues makeObjectsPerformSelector:@selector(didReceiveMsg:) withObject:message];
 }
+
 -(void) connection: (bool) conn
 {
     connected = conn;
@@ -351,20 +327,17 @@ static MasterViewController *me;
                 case LOG_PAGE:
                     if ([_collectionController presentView: @"SysLog"]) return indexPath;
                     break;
-                case DATA_PAGE:
-                    if ([_collectionController presentView: @"Data"]) return indexPath;
-                    break;
-//                case OPTIONS_PAGE:
-//                    if ([_collectionController presentView: @"Options"]) return indexPath;
-//                    break;
-//                case SETTINGS_PAGE:
-//                    if ([_collectionController presentView: @"Settings"]) return indexPath;
-//                    break;
                 case RC_PAGE:
                     if ([_collectionController presentView: @"RC"]) return indexPath;
                     break;
-                case CONDITIONS_PAGE:
-                    if ([_collectionController presentView: @"Conditions"]) return indexPath;
+                case CONDITIONS_PAGE1:
+                    if ([_collectionController presentView: @"Conditions1"]) return indexPath;
+                    break;
+                case CONDITIONS_PAGE2:
+                    if ([_collectionController presentView: @"Conditions2"]) return indexPath;
+                    break;
+                case CONDITIONS_PAGE3:
+                    if ([_collectionController presentView: @"Conditions3"]) return indexPath;
                     break;
                 case BEHAVIOR_PAGE:
                     if ([_collectionController presentView: @"Behavior"]) return indexPath;

@@ -10,7 +10,7 @@
 #import "MessageDelegateProtocol.h"
 
 #define TIMEOUT_DURATION    30.0f
-#define CONFIG_TIMEOUT      120
+#define CONFIG_TIMEOUT      20
 
 @class SubsystemViewController;
 

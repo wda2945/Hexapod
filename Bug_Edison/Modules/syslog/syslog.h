@@ -59,5 +59,17 @@ void SysLogProcessMessage(psMessage_t *msg);				//process for logging
 
 void PrintLogMessage(FILE *f, psMessage_t *msg);
 
+#define tprintf(...) {char tmp[100];\
+    snprintf(tmp, 100, __VA_ARGS__);\
+    tmp[100-1] = 0;\
+    DebugPrint(stdout, tmp);}
+
+#define tfprintf(dbgfile, ...) {char tmp[100];\
+    snprintf(tmp,100,__VA_ARGS__);\
+    tmp[100-1] = 0;\
+    DebugPrint(dbgfile, tmp);}
+
+void DebugPrint(FILE *dbgfile, char *logtext);
+
 #endif	/* SYSLOG_H */
 

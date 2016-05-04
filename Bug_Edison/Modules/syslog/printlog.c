@@ -53,3 +53,15 @@ void PrintLogMessage(FILE *f, psMessage_t *msg)
 			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec,
 			severity, msg->logPayload.file, msg->logPayload.text);
 }
+
+
+void DebugPrint(FILE *dbgfile, char *logtext)
+{
+	const time_t now = time(NULL);
+	struct tm *timestruct = localtime(&now);
+
+	fprintf(dbgfile, "%02i:%02i:%02i %s",
+			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec, logtext);
+
+	fflush(dbgfile);
+}

@@ -182,16 +182,24 @@ int LSM303_readReg(uint8_t reg)
 // Reads the 3 accelerometer channels and stores them in vector a
 int LSM303_readAcc(void)
 {
-	int i;
+	int i, result;
+	bool readerror = false;
 	uint8_t regData[6];
 
 	if (LSM303_setAddress() < 0) return -1;
 
 	for (i=0; i<6; i++)
 	{
-		int data = LSM303_readReg(OUT_X_L_A + i);
-		if (data < 0) return -1;
-		regData[i] = (uint8_t) (data & 0xff);
+		result = LSM303_readReg(OUT_X_L_A + i);
+		if (result >= 0)
+		{
+			regData[i] = result;
+		}
+		else
+		{
+			regData[i] = 0;
+			readerror = true;
+		}
 	}
 
   // combine high and low bytes
@@ -201,41 +209,50 @@ int LSM303_readAcc(void)
   LSM303_a.y = (int16_t)(regData[3] << 8 | regData[2]);
   LSM303_a.z = (int16_t)(regData[5] << 8 | regData[4]);
 
-  return 0;
+  DEBUGPRINT("Accel: %i, %i, %i\n", LSM303_a.x, LSM303_a.y, LSM303_a.z);
+
+	return (readerror ? -1 : 0);
 }
 
 // Reads the 3 magnetometer channels and stores them in vector m
 int LSM303_readMag(void)
 {
-	int i;
+	int i, result;
+	bool readerror = false;
 	uint8_t regData[6];
 
 	if (LSM303_setAddress() < 0) return -1;
 
 	for (i=0; i<6; i++)
 	{
-		int data = LSM303_readReg(OUT_X_L_M + i);
-		if (data < 0) return -1;
-		regData[i] = (uint8_t) (data & 0xff);
+		result = LSM303_readReg(OUT_X_L_M + i);
+		if (result >= 0)
+		{
+			regData[i] = result;
+		}
+		else
+		{
+			regData[i] = 0;
+			readerror = true;
+		}
 	}
 	// combine high and low bytes
 	LSM303_m.x = (int16_t)(regData[1] << 8 | regData[0]);
 	LSM303_m.y = (int16_t)(regData[3] << 8 | regData[2]);
 	LSM303_m.z = (int16_t)(regData[5] << 8 | regData[4]);
 
-	return 0;
+	DEBUGPRINT("Mag: %i, %i, %i\n", LSM303_m.x, LSM303_m.y, LSM303_m.z);
+
+	return (readerror ? -1 : 0);
 }
 
-// Reads all 6 channels of the LSM303 and stores them in the object variables
+// Reads all 6 channels of the LSM303
 int LSM303Read(void)
 {
 	psMessage_t msg;
 
 	if (LSM303_readAcc() < 0) return -1;
 	if (LSM303_readMag() < 0) return -1;
-
-//	printf("Acc = {%i, %i, %i}\n", LSM303_a.x, LSM303_a.y, LSM303_a.z);
-//	printf("Mag = {%i, %i, %i}\n", LSM303_m.x, LSM303_m.y, LSM303_m.z);
 
 	//send heading message
 	psInitPublish(msg, IMU_REPORT);
@@ -245,7 +262,7 @@ int LSM303Read(void)
 
 	NewBrokerMessage(&msg);
 
-	printf("Heading: %f\n", msg.threeFloatPayload.heading);
+	DEBUGPRINT("Heading: %0.0f\n", msg.threeFloatPayload.heading);
 
 	return 0;
 }

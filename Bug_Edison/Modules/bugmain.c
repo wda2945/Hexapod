@@ -41,22 +41,20 @@
 FILE *mainDebugFile;
 
 #ifdef MAIN_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(mainDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
+#define DEBUGPRINT(...) tfprintf(mainDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
+#define ERRORPRINT(...) tprintf(__VA_ARGS__);tfprintf(mainDebugFile, __VA_ARGS__);
 
 #define PROCESS_NAME "overmind"
 
 bool initComplete = false;
 
 int *pidof (char *pname);
-
-//SIGHUP signal used to trigger reload of edited lua scripts
-void SIGHUPhandler(int sig);
-int SIGHUPflag = 0;
+void KillAllOthers(char * name);
+void fatal_error_signal (int sig);
 
 int main(int argc, const char * argv[])
 {
@@ -72,19 +70,7 @@ int main(int argc, const char * argv[])
 
 	DEBUGPRINT("main() Logfile opened\n");
 
-	//kill any others of this name
-	int *pidlist = pidof(PROCESS_NAME);	//list of pids
-	int *pids = pidlist;
-	//kill each pid in list (except me)
-	while (*pids != -1) {
-		if (*pids != getpid())	//don't kill me
-		{
-			kill(*pids, SIGTERM);
-			DEBUGPRINT("Killed pid %i (%s)\n", *pids, PROCESS_NAME);
-		}
-		pids++;
-	}
-	free(pidlist);
+	KillAllOthers(PROCESS_NAME);
 
 	reply = mraa_init();
 
@@ -93,7 +79,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("mraa_init() fail: %i\n", reply);
 		initFail = "mraa";
 	}
-	else DEBUGPRINT("mraa init() OK\n");
+	else {
+		DEBUGPRINT("mraa init() OK\n");
+	}
 
 //	LSM303StartCalibrate();
 
@@ -104,7 +92,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("BrokerQueueInit() fail\n");
 		initFail = "brokerQ";
 	}
-	else DEBUGPRINT("BrokerQueueInit() OK\n");
+	else {
+		DEBUGPRINT("BrokerQueueInit() OK\n");
+	}
 	
 	//start syslog
 	if (SysLog_INIT() != 0)
@@ -112,7 +102,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("SysLogInit() fail\n");
 		initFail = "syslog";
 	}
-	else DEBUGPRINT("SysLogInit() OK\n");
+	else {
+		DEBUGPRINT("SysLogInit() OK\n");
+	}
 
 	//start agent threads
 	if (Agent_INIT() != 0)
@@ -120,7 +112,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("AgentInit() fail\n");
 		initFail = "agent";
 	}
-	else DEBUGPRINT("AgentInit() OK\n");
+	else {
+		DEBUGPRINT("AgentInit() OK\n");
+	}
 
 	//start arbotix threads
 	if (Arbotix_INIT() != 0)
@@ -128,7 +122,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("ArbotixInit() fail\n");
 		initFail = "arbotix";
 	}
-	else DEBUGPRINT("ArbotixInit() OK\n");
+	else {
+		DEBUGPRINT("ArbotixInit() OK\n");
+	}
 
 	//start autopilot threads
 	if (Autopilot_INIT() != 0)
@@ -136,7 +132,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("AutopilotInit() fail\n");
 		initFail = "pilot";
 	}
-	else DEBUGPRINT("AutopilotInit() OK\n");
+	else {
+		DEBUGPRINT("AutopilotInit() OK\n");
+	}
 
 	//start behavior tree threads
 	if (Behavior_INIT() != 0)
@@ -144,7 +142,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("BehaviorInit() fail\n");
 		initFail = "behavior";
 	}
-	else DEBUGPRINT("BehaviorInit OK\n");
+	else {
+		DEBUGPRINT("BehaviorInit OK\n");
+	}
 
 	//start Dancer threads
 	if (Dancer_INIT() != 0)
@@ -152,7 +152,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("DancerInit()\n fail");
 		initFail = "dancer";
 	}
-	else DEBUGPRINT("DancerInit() OK\n");
+	else {
+		DEBUGPRINT("DancerInit() OK\n");
+	}
 
 	//start Gripper threads
 	if (Gripper_INIT() != 0)
@@ -160,7 +162,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("GripperInit()\n fail");
 		initFail = "gripper";
 	}
-	else DEBUGPRINT("GripperInit() OK\n");
+	else {
+		DEBUGPRINT("GripperInit() OK\n");
+	}
 
 	//start i2c threads
 	if (I2C_INIT() != 0)
@@ -168,7 +172,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("I2CInit() fail\n");
 		initFail = "i2c";
 	}
-	else DEBUGPRINT("I2CInit() OK\n");
+	else {
+		DEBUGPRINT("I2CInit() OK\n");
+	}
 
 	//start Lidar threads
 	if (Lidar_INIT() != 0)
@@ -176,7 +182,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("LidarInit()\n");
 		initFail = "RP_LIDAR";
 	}
-	else DEBUGPRINT("LidarInit() OK\n");
+	else {
+		DEBUGPRINT("LidarInit() OK\n");
+	}
 
 	//start navigator threads
 	if (Navigator_INIT() != 0)
@@ -184,7 +192,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("NavigatorInit() fail\n");
 		initFail = "navigator";
 	}
-	else DEBUGPRINT("NavigatorInit() OK\n");
+	else {
+		DEBUGPRINT("NavigatorInit() OK\n");
+	}
 
 	//start broker threads
 	if (Broker_INIT() != 0)
@@ -192,70 +202,91 @@ int main(int argc, const char * argv[])
 		ERRORPRINT( "BrokerInit() fail\n");
 		initFail = "broker";
 	}
-	else DEBUGPRINT("BrokerInit() OK\n");
+	else {
+		DEBUGPRINT("BrokerInit() OK\n");
+	}
 
 	if (Responder_INIT() != 0)
 	{
 		ERRORPRINT( "ResponderInit() fail\n");
 		initFail = "responder";
 	}
-	else DEBUGPRINT("ResponderInit() OK\n");
+	else {
+		DEBUGPRINT("ResponderInit() OK\n");
+	}
+
+	//Notifications
+	reply=NotificationsInit();
+	if (reply != 0)
+	{
+		ERRORPRINT("NotificationsInit() fail\n");
+		initFail = "responder";
+	}
+	else {
+		DEBUGPRINT("NotificationsInit() OK\n");
+	}
+
+	initComplete = true;
 
 	if (strlen(initFail) > 0)
 	{
+		SetCondition(INIT_ERROR);
 		LogError("Hexapod Init Fail '%s'\n", initFail);
 		SetCondition(INIT_ERROR);
 		sleep(5);
 		return -1;
 	}
 
-	initComplete = true;
-
 	LogRoutine("Init complete");
 
 	if (getppid() == 1)
 	{
-		//child of init
-		//set SIGHUP handler
-		if (signal(SIGHUP, SIGHUPhandler) == SIG_ERR)
-		{
-			ERRORPRINT("SIGHUP err: %s", strerror(errno));
-		}
-		else
-		{
-			DEBUGPRINT("SIGHUP handler set");
-		}
-		//redirect stdout and stderr to null
+		//child of init/systemd
+
+		//close stdio
 		fclose(stdout);
 		fclose(stderr);
 		stdout = fopen("/dev/null", "w");
 		stderr = fopen("/dev/null", "w");
 	}
 
+	signal(SIGILL, fatal_error_signal);
+	signal(SIGABRT, fatal_error_signal);
+	signal(SIGIOT, fatal_error_signal);
+	signal(SIGBUS, fatal_error_signal);
+	signal(SIGFPE, fatal_error_signal);
+	signal(SIGSEGV, fatal_error_signal);
+	signal(SIGTERM, fatal_error_signal);
+	signal(SIGCHLD, fatal_error_signal);
+	signal(SIGSYS, fatal_error_signal);
+	signal(SIGCHLD, fatal_error_signal);
+
 	while(1)
 	{
 		sleep(1);
-
-		psMessage_t msg;
-		psInitPublish(msg, TICK_1S);
-		NewBrokerMessage(&msg);
-
-		if (SIGHUPflag)
-		{
-			//SIGHUP used to reload edited scripts
-			psInitPublish(msg, RELOAD);
-			NewBrokerMessage(&msg);
-
-			SIGHUPflag = 0;
-		}
 	}
 
 	return 0;
 }
-//SIGHUP
-void SIGHUPhandler(int sig)
+
+
+//other signals
+volatile sig_atomic_t fatal_error_in_progress = 0;
+void fatal_error_signal (int sig)
 {
-	SIGHUPflag = 1;
+	/* Since this handler is established for more than one kind of signal, it might still get invoked recursively by delivery of some other kind of signal. Use a static variable to keep track of that. */
+	if (fatal_error_in_progress)
+		raise (sig);
+	fatal_error_in_progress = 1;
+
+	LogError("Signal %i raised", sig);
+	sleep(1);	//let there be printing
+
+	/* Now re-raise the signal. We reactivate the signal�s default handling, which is to terminate the process. We could just call exit or abort,
+but re-raising the signal sets the return status
+from the process correctly. */
+	signal (sig, SIG_DFL);
+	raise (sig);
 }
 
 //functions to find any existing processes of a given name
@@ -343,3 +374,19 @@ int *pidof (char *pname)
   return pidlist;
 }
 
+void KillAllOthers(char * name)
+{
+	//kill any others of this name
+	int *pidlist = pidof(name);	//list of pids
+	int *pids = pidlist;
+	//kill each pid in list (except me)
+	while (*pids != -1) {
+		if (*pids != getpid())	//don't kill me
+		{
+			kill(*pids, SIGTERM);
+			DEBUGPRINT("Killed pid %i (%s)\n", *pids, name);
+		}
+		pids++;
+	}
+	free(pidlist);
+}

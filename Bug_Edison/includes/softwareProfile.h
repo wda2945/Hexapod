@@ -19,7 +19,7 @@
 #define		Dancer_INIT()		0 //DancerInit()
 #define		Gripper_INIT()		0 //GripperInit()
 #define		I2C_INIT()			0 //I2CInit()
-#define		Lidar_INIT()		0 //LidarInit()
+#define		Lidar_INIT()		LidarInit()
 #define		Navigator_INIT()	0 //NavigatorInit()
 #define		Responder_INIT()	ResponderInit()
 #define		SysLog_INIT()		SysLogInit()
@@ -74,7 +74,7 @@
 #define ADC_AUDIO_CHAN			0		//audio envelope
 #define ADC_BATTERY_CHAN 		2
 
-#define BATTERY_VOLTS_FACTOR	((5.0 / 255) * (11.6 / 1.22) * (11.66 / 11.0))
+#define BATTERY_VOLTS_FACTOR	((5.0 / 255) * (11.6 / 1.22) * (11.66 / 11.0) * (11.6 / 12.0))
 #define BATTERY_CRITICAL_VOLTS	8.0f
 #define BATTERY_LOW_VOLTS		10.0f
 

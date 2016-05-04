@@ -60,6 +60,16 @@ int psMessageFormatLengths[PS_FORMAT_COUNT] = {
 //other name lookups
  char *batteryStateNames[] = BATTERY_STATUS_NAMES;
 
+ //options
+ #define optionmacro(name, var, min, max, def) int var = def;
+ #include "options.h"
+ #undef optionmacro
+
+ //Settings
+ #define settingmacro(name, var, min, max, def) float var = def;
+ #include "settings.h"
+ #undef settingmacro
+
 #define EVENT(e, n) n,
  char *eventNames[EVENT_COUNT] = {
 #include "messages/NotificationEventsList.h"

@@ -2,7 +2,7 @@
 Description=overmind for bug hexapod
 
 [Service]
-ExecStart=/root/stable/overmind
+ExecStart=/home/root/start.sh
 
 [Install]
 WantedBy=multi-user.target

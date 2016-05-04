@@ -15,6 +15,9 @@
 #include <errno.h>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
+#include <linux/reboot.h>
+#include <sys/reboot.h>
 
 #include "lua.h"
 #include "lualib.h"
@@ -99,7 +102,7 @@ static int SystemAction(lua_State *L)
 		return SaveSettingsAndOptions(L, true);
 		break;
 	case SystemPoweroff:
-		//TODO
+		reboot(RB_POWER_OFF);
 		return success(L);
 		break;
 	case ReloadScripts:

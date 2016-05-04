@@ -20,6 +20,7 @@
 
 #include "pubsub/pubsub.h"
 #include "pubsubdata.h"
+#include "syslog/syslog.h"
 
 #include "i2c_task/i2c_task.h"
 #include "i2c_task/i2c_common.h"
@@ -101,9 +102,7 @@ int PCF8591Read(int channel)
 
 			psMessage_t msg;
 			psInitPublish(msg, BATTERY);
-			msg.batteryPayload.volts = (uint16_t) volts * 10;
-
-
+			msg.batteryPayload.volts = (uint16_t) (volts * 10.0);
 
 			DEBUGPRINT("Battery = %0.1fv\n", volts);
 

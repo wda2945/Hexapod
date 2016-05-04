@@ -9,19 +9,21 @@
 #define I2C_TASK_I2C_COMMON_H_
 
 #include "softwareProfile.h"
+#include "syslog/syslog.h"
 
 //file context for I2C bus
 extern mraa_i2c_context i2c_context;
 
 extern FILE *i2cDebugFile;
 
-#define LOGFILEPRINT(...)  fprintf(i2cDebugFile, __VA_ARGS__);fflush(i2cDebugFile);
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(i2cDebugFile, __VA_ARGS__);fflush(i2cDebugFile);
+//#define LOGFILEPRINT(...)  tfprintf(i2cDebugFile, __VA_ARGS__);
+
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(i2cDebugFile, __VA_ARGS__);
 
 #ifdef I2C_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(i2cDebugFile, __VA_ARGS__);fflush(i2cDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(i2cDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) LOGFILEPRINT(...)
+#define DEBUGPRINT(...) tfprintf(i2cDebugFile, __VA_ARGS__);
 #endif
 
 

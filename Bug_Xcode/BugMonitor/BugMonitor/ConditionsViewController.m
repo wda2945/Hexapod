@@ -10,11 +10,13 @@
 
 @interface ConditionsViewController () {
     UITableView *tableView;
-    NSMutableDictionary *notifications;
+    NSMutableArray *notifications;
     NSArray *sortedList;
     
     NotificationMask_t conditions;
     NotificationMask_t valid;
+    
+    ConditionsList_enum myList;
 }
 
 @end
@@ -28,31 +30,79 @@
         self.view = tableView = [[UITableView alloc] init];
         tableView.dataSource = self;
         tableView.delegate = self;
+       
+#define CONDITION(e, n) n,
+        char *conditionNames[]		= {
+#include "messages/NotificationConditionsList.h"
+        };
+#undef CONDITION
         
-//        notifications = [NSMutableDictionary dictionary];
+#define CONDITION(e, n) n,
+        char *proxConditionNames[]		= {
+#include "messages/NotificationConditionsListProximity.h"
+            NULL
+        };
+#undef CONDITION
+        
+#define CONDITION(e, n) n,
+        char *errorConditionNames[]		= {
+#include "messages/NotificationConditionsListErrors.h"
+            NULL
+        };
+#undef CONDITION
+        
+#define CONDITION(e, n) n,
+        char *statusConditionNames[]		= {
+#include "messages/NotificationConditionsListStatus.h"
+            NULL
+        };
+#undef CONDITION
+        
+        notifications = [NSMutableArray array];
+        
+        for (int i=1; i< CONDITION_COUNT; i++)
+        {
+            NSNumber *conditionNumber = [NSNumber numberWithInt:i];
+            NSString *conditionName = [NSString stringWithFormat:@"%s", conditionNames[i]];
+            
+            char **nameList;
+            
+            switch(myList)
+            {
+                case CONDITIONS_ERRORS:
+                    nameList = errorConditionNames;
+                    break;
+                case CONDITIONS_PROXIMITY:
+                    nameList = proxConditionNames;
+                    break;
+                case CONDITIONS_STATUS:
+                    nameList = statusConditionNames;
+                    break;
+            }
+            while (*nameList)
+            {
+                if (strcmp(conditionNames[i], *nameList) == 0)
+                {
+                    NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                                          conditionNumber, @"number",
+                                          conditionName, @"name",
+                                          nil];
+                    [notifications addObject:dict];
+                }
+                nameList++;
+            }
+        }
+
     }
     return self;
 }
 
-#define CONDITION(e, n) n,
-char *conditionNames[]		= {
-#include "messages/NotificationConditionsList.h"
-};
-#undef CONDITION
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    
-    for (int i=1; i< CONDITION_COUNT; i++)
-    {
-        NSNumber *key = [NSNumber numberWithInt:i];
-        
-        NSString *name = [NSString stringWithFormat:@"%s", conditionNames[i]];
-        [notifications setObject:name forKey:key];
-        
-    }
+- (ConditionsViewController*) initForList: (ConditionsList_enum) list
+{
+    myList = list;
+    return [self init];
 }
+
 - (void) clearConditions
 {
     conditions = valid = 0;
@@ -109,16 +159,22 @@ char *conditionNames[]		= {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return CONDITION_COUNT-1;
+    return notifications.count;
 }
 
-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+- (UITableViewCell *)tableView:(UITableView *)tView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell   *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"xxw"];
-            
-    cell.textLabel.text = [NSString stringWithFormat:@"%s", conditionNames[indexPath.row+1]];
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"xxw"];
+    if (!cell)
+    {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"xxw"];
+    }
     
-    if (conditions & valid & NOTIFICATION_MASK((indexPath.row + 1)))
+    NSDictionary *dict = [notifications objectAtIndex:indexPath.row];
+    
+    cell.textLabel.text = [dict objectForKey:@"name"];
+    
+    if (conditions & valid & NOTIFICATION_MASK([[dict objectForKey:@"number"] intValue]))
     {
         cell.accessoryType = UITableViewCellAccessoryCheckmark;
     }

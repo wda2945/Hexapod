@@ -16,6 +16,7 @@
 #include <errno.h>
 
 #include "lidar.h"
+#include "lidar/lidar_debug.h"
 #include "RPLidar.h"
 
 u_result _sendCommand(_u8 cmd, const void * payload, size_t payloadsize);
@@ -126,7 +127,6 @@ u_result getRPLidarDeviceInfo(rplidar_response_device_info_t *info)
     	}
     }
 
-
     return RESULT_OPERATION_TIMEOUT;
 }
 
@@ -140,7 +140,9 @@ u_result stopRPLidar()
 // start the measurement operation
 u_result startRPLidarScan(bool force)
 {
-    u_result ans;
+	DEBUGPRINT("RPLIDAR Start Scan\n");
+
+	u_result ans;
     
     stopRPLidar(); //force the previous operation to stop
 
@@ -150,24 +152,30 @@ u_result startRPLidarScan(bool force)
     // waiting for confirmation
     rplidar_ans_header_t response_header;
     if (IS_FAIL(ans = _waitResponseHeader(&response_header))) {
+    	ERRORPRINT("RPLIDAR Start Scan Wait Response Fail\n");
     	return ans;
     }
 
     // verify whether we got a correct header
     if (response_header.type != RPLIDAR_ANS_TYPE_MEASUREMENT) {
+    	ERRORPRINT("RPLIDAR Start Scan Invalid data\n");
     	return RESULT_INVALID_DATA;
     }
 
     if (response_header.size < sizeof(rplidar_response_measurement_node_t)) {
+    	ERRORPRINT("RPLIDAR Start Scan Invalid Data\n");
     	return RESULT_INVALID_DATA;
     }
 
+	DEBUGPRINT("RPLIDAR Start Scan OK\n");
     return RESULT_OK;
 }
 
 // wait for one sample point to arrive
 u_result waitRPLidarPoint()
 {
+	DEBUGPRINT("RPLIDAR Wait Point\n");
+
     struct timeval startTs;
     gettimeofday(&startTs, NULL);
    rplidar_response_measurement_node_t node;
@@ -212,11 +220,14 @@ u_result waitRPLidarPoint()
               _currentMeasurement.angle = (node.angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT)/64.0f;
               _currentMeasurement.quality = (node.sync_quality>>RPLIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
               _currentMeasurement.startBit = (node.sync_quality & RPLIDAR_RESP_MEASUREMENT_SYNCBIT);
+
+              DEBUGPRINT("RPLIDAR Point Data Received\n");
+
               return RESULT_OK;
           }
         
    }
-
+   ERRORPRINT("RPLIDAR Wait Point Timeout\n");
    return RESULT_OPERATION_TIMEOUT;
 }
 
@@ -224,6 +235,7 @@ u_result waitRPLidarPoint()
 
 u_result _sendCommand(_u8 cmd, const void * payload, size_t payloadsize)
 {
+	DEBUGPRINT("RPLIDAR Send Command: %2x + %i bytes\n", (unsigned int) cmd, payloadsize);
 
     rplidar_cmd_packet_t pkt_header;
     rplidar_cmd_packet_t * header = &pkt_header;
@@ -267,6 +279,8 @@ u_result _sendCommand(_u8 cmd, const void * payload, size_t payloadsize)
 
 u_result _waitResponseHeader(rplidar_ans_header_t * header)
 {
+	DEBUGPRINT("RPLIDAR Wait Response Header\n");
+
     _u8  recvPos = 0;
     struct timeval startTs;
     gettimeofday(&startTs, NULL);
@@ -292,9 +306,11 @@ u_result _waitResponseHeader(rplidar_ans_header_t * header)
         headerbuf[recvPos++] = currentbyte;
 
         if (recvPos == sizeof(rplidar_ans_header_t)) {
+        	DEBUGPRINT("RPLIDAR Got Response Header\n");
             return RESULT_OK;
         }
     }
+    ERRORPRINT("RPLIDAR Response Header Timeout\n");
     return RESULT_OPERATION_TIMEOUT;
 }
 

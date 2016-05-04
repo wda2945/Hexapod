@@ -67,7 +67,6 @@
         self.configured = NO;
         self.initErrors = false;
         
-        [self sendForConfig];
         latency = -1;
     }
     return self;
@@ -194,6 +193,7 @@
                 
                 [(UITableView*)self.view reloadData];
                 [self restartOnlineTimeout];
+                [self sendForConfig];
             }
                 break;
             case SS_ONLINE:

@@ -35,12 +35,12 @@
 FILE *arbotixDebugFile;
 
 #ifdef ARBOTIX_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(arbotixDebugFile, __VA_ARGS__);fflush(arbotixDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(arbotixDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(arbotixDebugFile, __VA_ARGS__);fflush(arbotixDebugFile);
+#define DEBUGPRINT(...) tfprintf(arbotixDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(arbotixDebugFile, __VA_ARGS__);fflush(arbotixDebugFile);
+#define ERRORPRINT(...) tprintf(__VA_ARGS__);tfprintf(arbotixDebugFile, __VA_ARGS__);
 
 int systemPowerState;
 

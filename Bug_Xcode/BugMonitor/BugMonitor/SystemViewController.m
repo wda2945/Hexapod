@@ -148,7 +148,7 @@ char *activityStatusNames[] = BEHAVIOR_STATUS_NAMES;
             [(UITableView*)self.view reloadData];
             break;
         case BATTERY:
-            volts = message.msg.batteryPayload.volts / 10.0;
+            volts = (float) message.msg.batteryPayload.volts / 10.0;
             batteryStatus = message.msg.batteryPayload.status;
             [(UITableView*)self.view reloadData];
             break;
@@ -189,7 +189,7 @@ char *activityStatusNames[] = BEHAVIOR_STATUS_NAMES;
             else return 2;
             break;
         case 2:
-            return 7;
+            return 5;
             break;
         default:
             return 0;
@@ -309,20 +309,12 @@ char *activityStatusNames[] = BEHAVIOR_STATUS_NAMES;
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%i", poseReport.orientation.roll];
                     break;
                 case 3:
-                    cell.textLabel.text = @"IMU Good?";
-                    cell.detailTextLabel.text = (poseReport.orientationValid ? @"Yes" : @"No");
-                    break;
-                case 4:
                     cell.textLabel.text = @"Latitude:";
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%f", poseReport.position.latitude];
                     break;
-                case 5:
+                case 4:
                     cell.textLabel.text = @"Longitude:";
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%f", poseReport.position.longitude];
-                    break;
-                case 6:
-                    cell.textLabel.text = @"GPS Good?";
-                    cell.detailTextLabel.text = (poseReport.positionValid ? @"Yes" : @"No");
                     break;
             }
             return cell;

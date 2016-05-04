@@ -1,0 +1,267 @@
+root@hexapod:~# echo $PWD'>'
+/home/root>
+root@hexapod:~# cd /home/root; chmod 755 /home/root/overmind;gdbserver :2345 /ho me/root/overmind;exit
+Process /home/root/overmind created; pid = 362
+Listening on port 2345
+Remote debugging from host 10.204.244.159
+16:11:04 main() Logfile opened
+16:11:04 Killed pid 252 (overmind)
+16:11:04 mraa init() OK
+16:11:04 BrokerQueueInit() OK
+syslog: Logfile opened on /home/root/logfiles/SYS_2016_04_02_16_11_04.log
+syslog: thread started
+syslog: pthread_create OK
+16:11:04 SysLogInit() OK
+16:11:04 Agent Logfile opened
+16:11:04 Agent Listen thread
+16:11:04 Agent listen socket created
+16:11:04 bind() error: Address already in use
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+16:11:04 AgentInit() OK
+16:11:04 ArbotixInit() OK
+16:11:04 AutopilotInit() OK
+16:11:04 Behavior Logfile opened
+16:11:04 Loading btclass: /home/root/lua/behaviortree/behavior_tree.lua
+64 bytes from 10.204.244.243: icmp_seq=0 ttl=64 time=1.733 ms
+16:11:04 loaded btclass
+16:11:04 Script Folder: /home/root/lua/init
+16:11:04 File: .
+16:11:04 File: initglobals.lua
+16:11:04 Loading initglobals: /home/root/lua/init/initglobals.lua
+16:11:04 loaded initglobals
+16:11:04 File: ..
+16:11:04 Script Folder: /home/root/lua/init done
+16:11:04 Script Folder: /home/root/lua/bt_leafs
+16:11:04 File: environment.lua
+16:11:04 Loading environment: /home/root/lua/bt_leafs/environment.lua
+16:11:04 loaded environment
+16:11:04 File: general.lua
+16:11:04 Loading general: /home/root/lua/bt_leafs/general.lua
+16:11:04 loaded general
+16:11:04 File: .
+16:11:04 File: system.lua
+16:11:04 Loading system: /home/root/lua/bt_leafs/system.lua
+16:11:04 loaded system
+16:11:04 File: piloting.lua
+16:11:04 Loading piloting: /home/root/lua/bt_leafs/piloting.lua
+16:11:04 loaded piloting
+16:11:04 File: ..
+16:11:04 File: proximity.lua
+16:11:04 Loading proximity: /home/root/lua/bt_leafs/proximity.lua
+16:11:04 loaded proximity
+16:11:04 Script Folder: /home/root/lua/bt_leafs done
+16:11:04 Script Folder: /home/root/lua/bt_activities
+16:11:04 File: .
+16:11:04 File: Behaviors.lua
+16:11:04 Loading Behaviors: /home/root/lua/bt_activities/Behaviors.lua
+16:11:04 loaded Behaviors
+16:11:04 File: Tests.lua
+16:11:04 Loading Tests: /home/root/lua/bt_activities/Tests.lua
+16:11:04 loaded Tests
+16:11:04 File: ..
+16:11:04 Script Folder: /home/root/lua/bt_activities done
+16:11:04 Script Folder: /home/root/lua/hooks
+16:11:04 File: .
+16:11:04 File: ..
+16:11:04 Script Folder: /home/root/lua/hooks done
+16:11:04 Script Folder: /home/root/lua/scripts
+16:11:04 File: .
+16:11:04 File: ..
+16:11:04 Script Folder: /home/root/lua/scripts done
+16:11:04 BehaviorInit OK
+16:11:04 DancerInit() OK
+16:11:04 GripperInit() OK
+16:11:04 I2CInit() OK
+16:11:04 Lidar Logfile opened
+16:11:04 Lidar uart context created
+16:11:04 Lidar uart baudrate: 115200
+16:11:04 Lidar mraa_uart_set_mode() OK
+16:11:04 Lidar mraa_uart_set_flowcontrol() OK
+16:11:04 Lidar uart /dev/ttyMFD1 configured
+16:11:04 LidarInit() OK
+16:11:04 NavigatorInit() OK
+16:11:04 Broker Logfile opened
+16:11:04 Lidar thread ready
+16:11:04 Sending for RPLIDAR Health Info
+16:11:04 RPLIDAR Send Command: 52 + 0 bytes
+16:11:04 RPLIDAR Wait Response Header
+16:11:04 RPLIDAR Got Response Header
+16:11:04 getHealth() status OK
+16:11:04 Sending for RPLIDAR Device Info
+16:11:04 RPLIDAR Send Command: 50 + 0 bytes
+16:11:04 RPLIDAR Wait Response Header
+16:11:04 BrokerInit() OK
+16:11:04 Broker Input thread started
+16:11:04 RPLIDAR Got Response Header
+16:11:04 RPLIDAR 00 #b4bff290. hw: 00, fw: 010e
+16:11:04 ResponderInit() OK
+16:11:04 Responder message thread started
+16:11:04 NotificationsInit() OK
+16:11:05 R@bugm: Init complete
+16:11:06 LIDAR startScan()
+16:11:06 RPLIDAR Start Scan
+16:11:06 RPLIDAR Send Command: 25 + 0 bytes
+16:11:06 RPLIDAR Send Command: 20 + 0 bytes
+16:11:06 RPLIDAR Wait Response Header
+16:11:07 RPLIDAR Response Header Timeout
+16:11:07 RPLIDAR Start Scan Wait Response Fail
+16:11:07 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=1 ttl=64 time=18.704 ms
+16:11:14 R@noti: Set: WiFi Connected
+
+16:11:15 Agent listen socket ready
+16:11:17 RPLIDAR Start Scan
+16:11:17 RPLIDAR Send Command: 25 + 0 bytes
+16:11:17 RPLIDAR Send Command: 20 + 0 bytes
+16:11:17 RPLIDAR Wait Response Header
+16:11:17 RPLIDAR Response Header Timeout
+16:11:17 RPLIDAR Start Scan Wait Response Fail
+16:11:17 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=2 ttl=64 time=28.528 ms
+16:11:24 R@noti: Set: WiFi Connected
+
+16:11:27 RPLIDAR Start Scan
+16:11:27 RPLIDAR Send Command: 25 + 0 bytes
+16:11:27 RPLIDAR Send Command: 20 + 0 bytes
+16:11:27 RPLIDAR Wait Response Header
+16:11:28 RPLIDAR Response Header Timeout
+16:11:28 RPLIDAR Start Scan Wait Response Fail
+16:11:28 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=3 ttl=64 time=2.939 ms
+16:11:34 R@noti: Set: WiFi Connected
+
+16:11:38 RPLIDAR Start Scan
+16:11:38 RPLIDAR Send Command: 25 + 0 bytes
+16:11:38 RPLIDAR Send Command: 20 + 0 bytes
+16:11:38 RPLIDAR Wait Response Header
+16:11:38 RPLIDAR Response Header Timeout
+16:11:38 RPLIDAR Start Scan Wait Response Fail
+16:11:38 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=4 ttl=64 time=15.805 ms
+16:11:44 R@noti: Set: WiFi Connected
+
+16:11:48 RPLIDAR Start Scan
+16:11:48 RPLIDAR Send Command: 25 + 0 bytes
+16:11:48 RPLIDAR Send Command: 20 + 0 bytes
+16:11:48 RPLIDAR Wait Response Header
+16:11:49 RPLIDAR Response Header Timeout
+16:11:49 RPLIDAR Start Scan Wait Response Fail
+16:11:49 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=5 ttl=64 time=18.130 ms
+16:11:54 R@noti: Set: WiFi Connected
+
+16:12:00 RPLIDAR Start Scan
+16:12:00 RPLIDAR Send Command: 25 + 0 bytes
+16:12:00 RPLIDAR Send Command: 20 + 0 bytes
+16:12:00 RPLIDAR Wait Response Header
+16:12:00 RPLIDAR Response Header Timeout
+16:12:00 RPLIDAR Start Scan Wait Response Fail
+16:12:00 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=6 ttl=64 time=4.254 ms
+16:12:05 R@noti: Set: WiFi Connected
+
+16:12:10 RPLIDAR Start Scan
+16:12:10 RPLIDAR Send Command: 25 + 0 bytes
+16:12:10 RPLIDAR Send Command: 20 + 0 bytes
+16:12:10 RPLIDAR Wait Response Header
+16:12:11 RPLIDAR Response Header Timeout
+16:12:11 RPLIDAR Start Scan Wait Response Fail
+16:12:11 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=7 ttl=64 time=13.074 ms
+16:12:15 R@noti: Set: WiFi Connected
+
+16:12:21 RPLIDAR Start Scan
+16:12:21 RPLIDAR Send Command: 25 + 0 bytes
+16:12:21 RPLIDAR Send Command: 20 + 0 bytes
+16:12:21 RPLIDAR Wait Response Header
+16:12:21 RPLIDAR Response Header Timeout
+16:12:21 RPLIDAR Start Scan Wait Response Fail
+16:12:21 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=8 ttl=64 time=3.797 ms
+16:12:25 R@noti: Set: WiFi Connected
+
+16:12:31 RPLIDAR Start Scan
+16:12:31 RPLIDAR Send Command: 25 + 0 bytes
+16:12:31 RPLIDAR Send Command: 20 + 0 bytes
+16:12:31 RPLIDAR Wait Response Header
+16:12:32 RPLIDAR Response Header Timeout
+16:12:32 RPLIDAR Start Scan Wait Response Fail
+16:12:32 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=9 ttl=64 time=8.431 ms
+16:12:35 R@noti: Set: WiFi Connected
+
+16:12:42 RPLIDAR Start Scan
+16:12:42 RPLIDAR Send Command: 25 + 0 bytes
+16:12:42 RPLIDAR Send Command: 20 + 0 bytes
+16:12:42 RPLIDAR Wait Response Header
+16:12:42 RPLIDAR Response Header Timeout
+16:12:42 RPLIDAR Start Scan Wait Response Fail
+16:12:42 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=10 ttl=64 time=16.819 ms
+16:12:45 R@noti: Set: WiFi Connected
+
+16:12:52 RPLIDAR Start Scan
+16:12:52 RPLIDAR Send Command: 25 + 0 bytes
+16:12:52 RPLIDAR Send Command: 20 + 0 bytes
+16:12:52 RPLIDAR Wait Response Header
+16:12:53 RPLIDAR Response Header Timeout
+16:12:53 RPLIDAR Start Scan Wait Response Fail
+16:12:53 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=11 ttl=64 time=11.262 ms
+16:12:55 R@noti: Set: WiFi Connected
+
+16:13:03 RPLIDAR Start Scan
+16:13:03 RPLIDAR Send Command: 25 + 0 bytes
+16:13:03 RPLIDAR Send Command: 20 + 0 bytes
+16:13:03 RPLIDAR Wait Response Header
+16:13:03 RPLIDAR Response Header Timeout
+16:13:03 RPLIDAR Start Scan Wait Response Fail
+16:13:03 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=12 ttl=64 time=16.092 ms
+16:13:05 R@noti: Set: WiFi Connected
+
+16:13:13 RPLIDAR Start Scan
+16:13:13 RPLIDAR Send Command: 25 + 0 bytes
+16:13:13 RPLIDAR Send Command: 20 + 0 bytes
+16:13:13 RPLIDAR Wait Response Header
+16:13:14 RPLIDAR Response Header Timeout
+16:13:14 RPLIDAR Start Scan Wait Response Fail
+16:13:14 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=13 ttl=64 time=5.434 ms
+16:13:15 R@noti: Set: WiFi Connected
+
+16:13:24 RPLIDAR Start Scan
+16:13:24 RPLIDAR Send Command: 25 + 0 bytes
+16:13:24 RPLIDAR Send Command: 20 + 0 bytes
+16:13:24 RPLIDAR Wait Response Header
+16:13:24 RPLIDAR Response Header Timeout
+16:13:24 RPLIDAR Start Scan Wait Response Fail
+16:13:24 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=14 ttl=64 time=5.526 ms
+16:13:25 R@noti: Set: WiFi Connected
+
+16:13:34 RPLIDAR Start Scan
+16:13:34 RPLIDAR Send Command: 25 + 0 bytes
+16:13:34 RPLIDAR Send Command: 20 + 0 bytes
+16:13:34 RPLIDAR Wait Response Header
+16:13:35 RPLIDAR Response Header Timeout
+16:13:35 RPLIDAR Start Scan Wait Response Fail
+16:13:35 startScan() fail
+PING 10.204.244.243 (10.204.244.243): 56 data bytes
+64 bytes from 10.204.244.243: icmp_seq=15 ttl=64 time=9.153 ms
+16:13:35 R@noti: Set: WiFi Connected
+

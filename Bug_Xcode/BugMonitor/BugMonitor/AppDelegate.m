@@ -190,7 +190,7 @@ void SIGPIPEhandler(int sig);
         {
             PubSubMsg *psMessage = [[PubSubMsg alloc] initWithMsg: &rxMessage];
             
-            if (psMessage)
+            if (psMessage && (rxMessage.header.messageType < PS_MSG_COUNT))
             {
                 NSLog(@"Message recv: %s", psLongMsgNames[rxMessage.header.messageType]);
                 
@@ -325,10 +325,10 @@ typedef enum {CONNECT_ERROR, LOST_CONNECTION} ServerConnectResult_enum;
     [self setConnectedCaption: @"Searching..." connected: NO];
     
     //then try an alternative
-    ipAddress.bytes[0] = 192;
-    ipAddress.bytes[1] = 168;
-    ipAddress.bytes[2] = 1;
-    ipAddress.bytes[3] = IP_ADDRESS;
+    ipAddress.bytes[0] = 10;
+    ipAddress.bytes[1] = 204;
+    ipAddress.bytes[2] = 244;
+    ipAddress.bytes[3] = 195;
     
     [self connectTo: ipAddress];
     

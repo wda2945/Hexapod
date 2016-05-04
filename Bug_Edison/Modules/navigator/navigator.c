@@ -29,12 +29,12 @@
 FILE *navDebugFile;
 
 #ifdef NAVIGATOR_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(navDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define DEBUGPRINT(...) tfprintf(navDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(navDebugFile, __VA_ARGS__);
 
 #define NORMALIZE_HEADING(x) (x + 360)%360
 

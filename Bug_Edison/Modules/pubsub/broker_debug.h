@@ -10,11 +10,11 @@
 extern FILE *psDebugFile;
 
 #ifdef BROKER_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(psDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define DEBUGPRINT(...) tfprintf(psDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(psDebugFile, __VA_ARGS__);
 
 #endif

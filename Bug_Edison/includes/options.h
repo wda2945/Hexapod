@@ -7,9 +7,11 @@
 //
 
 //optionmacro(name, var, min, max, def)
-optionmacro("arbdebug", arbDebug, 0, 1, 0)
-optionmacro("moveOK", moveOK, 0, 1, 0)
-optionmacro("turnOK", turnOK, 0, 1, 0)
+optionmacro("Arb Debug", arbDebug, 0, 1, 0)
+optionmacro("Move OK", moveOK, 0, 1, 0)
+optionmacro("Turn OK", turnOK, 0, 1, 0)
+
+optionmacro("Gripper Cycle", gripperCycle, 0, 1, 0)
 
 optionmacro("Log Warning", logWarning, 0, 1, 0)
 optionmacro("Log Info", logInfo, 0, 1, 0)

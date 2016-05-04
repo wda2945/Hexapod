@@ -97,7 +97,7 @@ void *ResponderMessageThread(void *arg)
 		}
 		break;
 		case NEW_SETTING:
-			LogRoutine("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
+			DEBUGPRINT("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
 #define settingmacro(n, var, minV, maxV, def) if (strncmp(n,msg->settingPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->settingPayload.value;\
 		sendSettingConfig(n, var, minV, maxV);
@@ -106,7 +106,7 @@ void *ResponderMessageThread(void *arg)
 			break;
 
 		case SET_OPTION:
-			LogRoutine("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
+			DEBUGPRINT("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
 #define optionmacro(n, var, minV, maxV, def) if (strncmp(n,msg->optionPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->optionPayload.value;\
 		sendOptionConfig(n, var, minV, maxV);
@@ -124,7 +124,7 @@ void *ResponderMessageThread(void *arg)
 }
 
 void sendOptionConfig(char *name, int var, int minV, int maxV) {
-	struct timespec request, remain;
+
 	psMessage_t msg;
 	psInitPublish(msg, OPTION);
 	strncpy(msg.optionPayload.name, name, PS_NAME_LENGTH);
@@ -135,13 +135,11 @@ void sendOptionConfig(char *name, int var, int minV, int maxV) {
 	configCount++;
 
 	//delay
-	request.tv_sec = 0;
-	request.tv_nsec = 100 * 1000 * 1000;	//100mS
-	nanosleep(&request, &remain);
+	usleep(100000);
 }
 
 void sendSettingConfig(char *name, float var, float minV, float maxV) {
-	struct timespec request, remain;
+
 	psMessage_t msg;
 	psInitPublish(msg, SETTING);
 	strncpy(msg.settingPayload.name, name, PS_NAME_LENGTH);
@@ -152,7 +150,5 @@ void sendSettingConfig(char *name, float var, float minV, float maxV) {
 	configCount++;
 
 	//delay
-	request.tv_sec = 0;
-	request.tv_nsec = 100 * 1000 * 1000;	//100mS
-	nanosleep(&request, &remain);
+	usleep(100000);
 }

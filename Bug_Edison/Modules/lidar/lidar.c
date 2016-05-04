@@ -27,18 +27,11 @@
 #include "pubsub/pubsub.h"
 #include "syslog/syslog.h"
 #include "behavior/behavior_enums.h"
+#include "lidar/lidar_debug.h"
 #include "lidar/lidar.h"
 #include "RPLidar.h"
 
 FILE *lidarDebugFile;
-
-#ifdef LIDAR_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(lidarDebugFile, __VA_ARGS__);fflush(lidarDebugFile);
-#else
-#define DEBUGPRINT(...) fprintf(lidarDebugFile, __VA_ARGS__);fflush(lidarDebugFile);
-#endif
-
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(lidarDebugFile, __VA_ARGS__);fflush(lidarDebugFile);
 
 //queue for messages
 BrokerQueue_t lidarQueue = BROKER_Q_INITIALIZER;
@@ -75,6 +68,7 @@ Condition_enum proximityConditions[ANGLE_BUCKET_COUNT] = {
 };
 
 int CheckLidarHealth();
+int GetLidarDetails();
 
 int LidarInit()
 {
@@ -87,7 +81,9 @@ int LidarInit()
 		ERRORPRINT("Lidar mraa_uart_init(%i) fail - %s\n", RPLIDAR_UART_DEVICE, strerror(errno));
 		return -1;
 	}
-	else DEBUGPRINT("Lidar uart context created\n");
+	else {
+		DEBUGPRINT("Lidar uart context created\n");
+	}
 
 	const char *devicePath = mraa_uart_get_dev_path(uartContext);
 
@@ -98,21 +94,27 @@ int LidarInit()
 		ERRORPRINT("Lidar mraa_uart_set_baudrate() fail\n");
 		return -1;
 	}
-	else DEBUGPRINT("Lidar uart baudrate: %i\n", RPLIDAR_UART_BAUDRATE);
+	else {
+		DEBUGPRINT("Lidar uart baudrate: %i\n", RPLIDAR_UART_BAUDRATE);
+	}
 
 	if (mraa_uart_set_mode(uartContext, 8, MRAA_UART_PARITY_NONE, 1) != MRAA_SUCCESS)
 	{
 		ERRORPRINT("Lidar mraa_uart_set_mode() fail\n");
 		return -1;
 	}
-	else DEBUGPRINT("Lidar mraa_uart_set_mode() OK\n");
+	else {
+		DEBUGPRINT("Lidar mraa_uart_set_mode() OK\n");
+	}
 
 	if (mraa_uart_set_flowcontrol(uartContext, false, false) != MRAA_SUCCESS)
 	{
 		ERRORPRINT("Lidar mraa_uart_set_flowcontrol() fail\n");
 		return -1;
 	}
-	else DEBUGPRINT("Lidar mraa_uart_set_flowcontrol() OK\n");
+	else {
+		DEBUGPRINT("Lidar mraa_uart_set_flowcontrol() OK\n");
+	}
 
 	DEBUGPRINT("Lidar uart %s configured\n", devicePath);
 
@@ -133,43 +135,6 @@ int LidarInit()
 	{
 		ERRORPRINT("J20_9 Pin error\n");
 	}
-
-
-//	// init pwm
-//	MOTOCTL_pwm = mraa_pwm_init(RPLIDAR_PWM_PIN);
-//	if (MOTOCTL_pwm == NULL) {
-//		ERRORPRINT("Can't create MOTOCTL PWM object\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("MOTOCTL PWM pin init() OK\n");
-//
-//	// disable PWM on the selected pin
-//	if (mraa_pwm_enable(MOTOCTL_pwm, 0) != MRAA_SUCCESS) {
-//		ERRORPRINT("Can't enable MOTOCTL PWM\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
-//
-//	//period = 50Hz
-//	if (mraa_pwm_period_ms(MOTOCTL_pwm, 20) != MRAA_SUCCESS)  {
-//		ERRORPRINT("Can't set MOTOCTL PWM period\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("MOTOCTL PWM pin period = 20mS\n");
-//
-//	//duty = 100%
-//	if (mraa_pwm_pulsewidth_ms(MOTOCTL_pwm, 19) != MRAA_SUCCESS)  {
-//		ERRORPRINT("Can't set MOTOCTL PWM pulse-width\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("MOTOCTL PWM pin pulse-width = 19mS\n");
-//
-//	// enable PWM on the selected pin
-//	if (mraa_pwm_enable(MOTOCTL_pwm, 1) != MRAA_SUCCESS) {
-//		ERRORPRINT("Can't enable MOTOCTL PWM\n");
-//		return -1;
-//	}
-//	else DEBUGPRINT("MOTOCTL PWM pin enable() OK\n");
 
 	//create thread to receive RPLIDAR messages
 	pthread_t thread;
@@ -200,6 +165,7 @@ void *LidarThread(void *arg)
 
 	//check health
 	CheckLidarHealth();
+	GetLidarDetails();
 
 	//wait for RPLIDAR to reach speed
 	sleep(2);
@@ -207,10 +173,10 @@ void *LidarThread(void *arg)
 	//start scan
 	DEBUGPRINT("LIDAR startScan()\n");
 
-    while (startRPLidarScan(false) != RESULT_OK)
+    while (startRPLidarScan(true) != RESULT_OK)
     {
 		ERRORPRINT("startScan() fail\n");
-    	sleep(10);
+    	sleep(2);
     }
 
     struct RPLidarMeasurement *lidarMeasurement;
@@ -221,9 +187,10 @@ void *LidarThread(void *arg)
 		if (waitRPLidarPoint() != RESULT_OK)
 		{
 			ERRORPRINT("waitPoint() timeout\n");
-			sleep(5);
-
-			startRPLidarScan(false);
+			sleep(2);
+			sendRPLidarReset();
+			sleep(1)
+			startRPLidarScan(true);
 			continue;
 		}
 
@@ -312,6 +279,8 @@ int CheckLidarHealth()
 	rplidar_response_device_health_t healthinfo;
 	while (1)
 	{
+		DEBUGPRINT("Sending for RPLIDAR Health Info\n");
+
 		switch (getRPLidarHealth(&healthinfo))
 		{
 		case RESULT_OK:
@@ -342,6 +311,41 @@ int CheckLidarHealth()
 			break;
 		case RESULT_OPERATION_TIMEOUT:
 			ERRORPRINT("getHealth() timeout\n");
+			sleep(1);
+			sendRPLidarReset();
+			sleep(1);
+			break;
+		}
+	}
+	return -1;
+}
+
+int GetLidarDetails()
+{
+	rplidar_response_device_info_t info;
+	while (1)
+	{
+		DEBUGPRINT("Sending for RPLIDAR Device Info\n");
+
+		switch (getRPLidarDeviceInfo(&info))
+		{
+		case RESULT_OK:
+		default:
+			DEBUGPRINT("RPLIDAR %02x #%02x. hw: %02x, fw: %04x\n",
+					 (unsigned int) info.model,
+					 (unsigned int) info.serialnum,
+					 (unsigned int) info.hardware_version,
+					 (unsigned int) info.firmware_version);
+			return 0;
+		break;
+		case RESULT_INVALID_DATA:
+			ERRORPRINT("getRPLidarDeviceInfo() invalid data\n");
+			sleep(1);
+			sendRPLidarReset();
+			sleep(1);
+			break;
+		case RESULT_OPERATION_TIMEOUT:
+			ERRORPRINT("getRPLidarDeviceInfo() timeout\n");
 			sleep(1);
 			sendRPLidarReset();
 			sleep(1);

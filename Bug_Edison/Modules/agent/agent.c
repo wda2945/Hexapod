@@ -34,12 +34,12 @@
 FILE *agentDebugFile;
 
 #ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tfprintf(agentDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define ERRORPRINT(...) tprintf(__VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 
 #define MAX_AGENT_CONNECTIONS 5
 
@@ -58,7 +58,7 @@ BrokerQueue_t agentQueue = BROKER_Q_INITIALIZER;	//queue for messages to be sent
 void *AgentListenThread(void *arg);					//listen thread spawns tx & rx threads for each connect
 pthread_t listenThread;
 pthread_t txThread;
-ptherad_t pingThread;
+pthread_t pingThread;
 
 void *AgentRxThread(void *arg);						//rx thread function
 void *AgentTxThread(void *arg);						//tx thread function
@@ -66,6 +66,7 @@ void *AgentTxThread(void *arg);						//tx thread function
 void *AgentPingThread(void *arg);					//thread send ping to router
 
 #define LISTEN_PORT_NUMBER 50000
+
 
 int AgentInit()
 {
@@ -89,10 +90,10 @@ int AgentInit()
 	//create agent Ping thread
 	s = pthread_create(&pingThread, NULL, AgentPingThread, NULL);
 	if (s != 0) {
-		LogError("Agent PingThread create failed. %i\n", strerror(s));
+		LogError("Agent PingThread create failed. %s\n", strerror(s));
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -384,7 +385,7 @@ int writeToSocket(int socket, uint8_t c, int *checksum, int *error)
 {
 	ssize_t reply;
 	do {
-		reply = send(socket, &c, 1, 0);
+		reply = send(socket, &c, 1, MSG_NOSIGNAL);
 	} while (reply == 0);
 
 	if (reply == 1)
@@ -481,7 +482,7 @@ void *AgentPingThread(void *arg)
 {
 	while (1)
 	{
-		if (pingServer("192.168.1.1") > 0)
+		if (pingServer("10.204.244.243") > 0)
 		{
 			SetCondition(WIFI_CONNECTED);
 		}

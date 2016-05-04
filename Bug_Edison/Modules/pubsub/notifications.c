@@ -21,15 +21,6 @@
 #include "notifications.h"
 #include "brokerQ.h"
 
-
-//#ifdef NOTIFICATIONS_DEBUG
-//#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
-//#else
-//#define DEBUGPRINT(...) fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
-//#endif
-//
-//#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
-
 //-------------------------------Events - triggered by changes
 NotificationMask_t NotifiedEvents;
 
@@ -40,11 +31,6 @@ NotificationMask_t ReportedConditions;
 NotificationMask_t ValidConditions;
 
 pthread_mutex_t conditionMutex = PTHREAD_MUTEX_INITIALIZER;   //Access to ActiveConditions
-
-//--------------------------------Notify task and q to process events
-
-BrokerQueue_t notifyQ = BROKER_Q_INITIALIZER;
-void *EventThread(void *pvParameters);
 
 //--------------------------------Task to publish Condition states
 void *ConditionThread(void *pvParameters);
@@ -84,7 +70,7 @@ void NotifyEvent(Event_enum e) {
 		NotifiedEvents |= notifyBit;
 	}
 
-	LogRoutine("Notify: %s\n", eventNames[e]);
+	DEBUGPRINT("Notify: %s\n", eventNames[e]);
 }
 
 //reset ~ 1/sec to permit a notification to be resent
@@ -103,7 +89,7 @@ void SetCondition(Condition_enum e)
     ValidConditions |= maskBit;
     pthread_mutex_unlock(&conditionMutex);
 
-    LogRoutine("Set: %s\n", conditionNames[e]);
+    DEBUGPRINT("Set: %s\n", conditionNames[e]);
 }
 
 void CancelCondition(Condition_enum e)

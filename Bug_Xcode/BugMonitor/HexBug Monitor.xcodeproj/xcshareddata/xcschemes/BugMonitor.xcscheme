@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5B94A6881B81511E00FE9283"
-               BuildableName = "BugMonitor.app"
-               BlueprintName = "BugMonitor"
-               ReferencedContainer = "container:BugMonitor.xcodeproj">
+               BuildableName = "HexBug Monitor.app"
+               BlueprintName = "HexBug Monitor"
+               ReferencedContainer = "container:HexBug Monitor.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5B94A6881B81511E00FE9283"
-            BuildableName = "BugMonitor.app"
-            BlueprintName = "BugMonitor"
-            ReferencedContainer = "container:BugMonitor.xcodeproj">
+            BuildableName = "HexBug Monitor.app"
+            BlueprintName = "HexBug Monitor"
+            ReferencedContainer = "container:HexBug Monitor.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -56,9 +56,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5B94A6881B81511E00FE9283"
-            BuildableName = "BugMonitor.app"
-            BlueprintName = "BugMonitor"
-            ReferencedContainer = "container:BugMonitor.xcodeproj">
+            BuildableName = "HexBug Monitor.app"
+            BlueprintName = "HexBug Monitor"
+            ReferencedContainer = "container:HexBug Monitor.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <AdditionalOptions>
@@ -75,9 +75,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5B94A6881B81511E00FE9283"
-            BuildableName = "BugMonitor.app"
-            BlueprintName = "BugMonitor"
-            ReferencedContainer = "container:BugMonitor.xcodeproj">
+            BuildableName = "HexBug Monitor.app"
+            BlueprintName = "HexBug Monitor"
+            ReferencedContainer = "container:HexBug Monitor.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

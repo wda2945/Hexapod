@@ -65,7 +65,7 @@ void RouteMessage(psMessage_t *msg)
 		break;
 
 	case RAW_NAV_TOPIC:			//inputs to navigator
-		Agent_PROCESS_MESSAGE(msg);		//copy IMU to App
+//		Agent_PROCESS_MESSAGE(msg);		//copy IMU to App
 		Navigator_PROCESS_MESSAGE(msg);
 		break;
 	case NAV_TOPIC:				//output from navigator
@@ -87,6 +87,7 @@ void RouteMessage(psMessage_t *msg)
 		break;
 	case REPORT_TOPIC:			//reports to Behavior Tree
 	case SYS_ACTION_TOPIC:		//commands from APP
+	case ACTION_TOPIC:
 		Behavior_PROCESS_MESSAGE(msg);
 		break;
 	case SYS_REPORT_TOPIC:       //reports to APP
@@ -94,21 +95,22 @@ void RouteMessage(psMessage_t *msg)
 	case RESPONSE_TOPIC:
 	case CONDITIONS_TOPIC:
 		Agent_PROCESS_MESSAGE(msg);
+		Behavior_PROCESS_MESSAGE(msg);
 		break;
 	case EVENTS_TOPIC:
-		Agent_PROCESS_MESSAGE(msg);
+//		Agent_PROCESS_MESSAGE(msg);
 		Behavior_PROCESS_MESSAGE(msg);
 		break;
 	}
 }
 
-//options
-#define optionmacro(name, var, min, max, def) int var;
-#include "options.h"
-#undef optionmacro
-
-//Settings
-#define settingmacro(name, var, min, max, def) float var;
-#include "settings.h"
-#undef settingmacro
+////options
+//#define optionmacro(name, var, min, max, def) int var;
+//#include "options.h"
+//#undef optionmacro
+//
+////Settings
+//#define settingmacro(name, var, min, max, def) float var;
+//#include "settings.h"
+//#undef settingmacro
 

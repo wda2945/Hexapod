@@ -38,12 +38,11 @@
     self.definesPresentationContext = YES;
 
     [self addChildViewController:[MasterViewController getMasterViewController].behaviorViewController];
-    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController];
-    [self addChildViewController:[MasterViewController getMasterViewController].dataController];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController1];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController2];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController3];
     [self addChildViewController:[MasterViewController getMasterViewController].logViewController];
-    [self addChildViewController:[MasterViewController getMasterViewController].optionsController];
     [self addChildViewController:[MasterViewController getMasterViewController].rcController];
-    [self addChildViewController:[MasterViewController getMasterViewController].settingsController];
     [self addChildViewController:[MasterViewController getMasterViewController].systemViewController];
     [self addChildViewController:[MasterViewController getMasterViewController].subsystemViewController];
     

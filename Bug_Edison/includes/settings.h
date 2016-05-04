@@ -7,14 +7,9 @@
 //
 
 //settingmacro(name, var, min, max, def)
-settingmacro("arbtimeout", arbTimeout, 1, 20, 10)
+settingmacro("Arb Timeout", arbTimeout, 1, 20, 10)
 
-settingmacro("defTurnRate", defTurnRate, 100, 1000, 250)
-settingmacro("defSpeed", defSpeed, 1, 100, 25)
-
-settingmacro("appReportInterval", appReportInterval, 1000, 10000, 5000)
-
-settingmacro("closeRange", closeRange, 10, 100, 30)
+settingmacro("Close Range", closeRange, 1, 100, 20)
 
 //navigator
 settingmacro("Nav Loop mS", navLoopDelay, 100, 1000, 500)

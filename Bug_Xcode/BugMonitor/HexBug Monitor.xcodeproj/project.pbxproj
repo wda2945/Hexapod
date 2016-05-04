@@ -30,7 +30,6 @@
 		5B8BAE781C96407B0062CD2D /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B8BAE771C96407B0062CD2D /* Default-568h@2x.png */; };
 		5B94A71E1B8151B300FE9283 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6B11B8151B300FE9283 /* AppDelegate.m */; };
 		5B94A7221B8151B300FE9283 /* CollectionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6BB1B8151B300FE9283 /* CollectionViewController.m */; };
-		5B94A7231B8151B300FE9283 /* DataViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6BD1B8151B300FE9283 /* DataViewController.m */; };
 		5B94A7241B8151B300FE9283 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5B94A6BF1B8151B300FE9283 /* InfoPlist.strings */; };
 		5B94A7251B8151B300FE9283 /* charge_battery.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B94A6C31B8151B300FE9283 /* charge_battery.png */; };
 		5B94A7261B8151B300FE9283 /* fully_charged_battery.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B94A6C41B8151B300FE9283 /* fully_charged_battery.png */; };
@@ -81,13 +80,11 @@
 		5B94A7551B8151B300FE9283 /* LogViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6F91B8151B300FE9283 /* LogViewController.m */; };
 		5B94A7561B8151B300FE9283 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6FA1B8151B300FE9283 /* main.m */; };
 		5B94A7581B8151B300FE9283 /* MasterViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A6FE1B8151B300FE9283 /* MasterViewController.m */; };
-		5B94A75A1B8151B300FE9283 /* OptionsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7021B8151B300FE9283 /* OptionsViewController.m */; };
 		5B94A75C1B8151B300FE9283 /* PubSubMsg.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7061B8151B300FE9283 /* PubSubMsg.m */; };
 		5B94A75D1B8151B300FE9283 /* RCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7081B8151B300FE9283 /* RCViewController.m */; };
 		5B94A7601B8151B300FE9283 /* SettingsDetail-iPad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5B94A70D1B8151B300FE9283 /* SettingsDetail-iPad.xib */; };
 		5B94A7611B8151B300FE9283 /* SettingsDetail-iPhone.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5B94A70E1B8151B300FE9283 /* SettingsDetail-iPhone.xib */; };
 		5B94A7621B8151B300FE9283 /* SettingsDetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7101B8151B300FE9283 /* SettingsDetailViewController.m */; };
-		5B94A7631B8151B300FE9283 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7121B8151B300FE9283 /* SettingsViewController.m */; };
 		5B94A7651B8151B300FE9283 /* SubsystemViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7161B8151B300FE9283 /* SubsystemViewController.m */; };
 		5B94A7661B8151B300FE9283 /* SystemViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B94A7181B8151B300FE9283 /* SystemViewController.m */; };
 		5BE5408A1B82AF470005DF92 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5BE540891B82AF470005DF92 /* Media.xcassets */; };
@@ -104,6 +101,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5B2650941CD874B1005465EE /* NotificationConditionsListErrors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NotificationConditionsListErrors.h; sourceTree = "<group>"; };
+		5B2650951CD874B1005465EE /* NotificationConditionsListProximity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NotificationConditionsListProximity.h; sourceTree = "<group>"; };
+		5B2650961CD874B1005465EE /* NotificationConditionsListStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NotificationConditionsListStatus.h; sourceTree = "<group>"; };
 		5B2D13B01C9619F2001B5291 /* BehaviorViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BehaviorViewController.m; path = BugMonitor/BehaviorViewController.m; sourceTree = "<group>"; };
 		5B2D13B11C9619F2001B5291 /* ConditionsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ConditionsViewController.m; path = BugMonitor/ConditionsViewController.m; sourceTree = "<group>"; };
 		5B2D13B21C9619F2001B5291 /* BehaviorViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BehaviorViewController.h; path = BugMonitor/BehaviorViewController.h; sourceTree = "<group>"; };
@@ -135,15 +135,14 @@
 		5B2D14031C961A18001B5291 /* mxml-string.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "mxml-string.c"; sourceTree = "<group>"; };
 		5B2D14041C961A18001B5291 /* mxml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mxml.h; sourceTree = "<group>"; };
 		5B2D141C1C961A18001B5291 /* PortablePrint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PortablePrint.h; sourceTree = "<group>"; };
-		5B2D141E1C961A18001B5291 /* PubSubData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PubSubData.h; sourceTree = "<group>"; };
 		5B2D141F1C961A18001B5291 /* PubSubParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PubSubParser.h; sourceTree = "<group>"; };
 		5B2D14201C961A18001B5291 /* Waypoints.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Waypoints.h; sourceTree = "<group>"; };
 		5B2D14731C9623A3001B5291 /* conditions.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = conditions.png; sourceTree = "<group>"; };
 		5B83C6491CA90878009E7829 /* Icon-Small.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Icon-Small.png"; sourceTree = "<group>"; };
 		5B83C64B1CA90963009E7829 /* bug-32.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bug-32.png"; sourceTree = "<group>"; };
 		5B8BAE771C96407B0062CD2D /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../Default-568h@2x.png"; sourceTree = "<group>"; };
-		5B94A6891B81511E00FE9283 /* BugMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BugMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5B94A6A21B81511E00FE9283 /* BugMonitorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BugMonitorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B94A6891B81511E00FE9283 /* HexBug Monitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HexBug Monitor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B94A6A21B81511E00FE9283 /* HexBug Monitor.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "HexBug Monitor.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B94A6B01B8151B300FE9283 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		5B94A6B11B8151B300FE9283 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		5B94A6B41B8151B300FE9283 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Main_iPad.storyboard; sourceTree = "<group>"; };
@@ -151,8 +150,6 @@
 		5B94A6B71B8151B300FE9283 /* MessageDelegateProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MessageDelegateProtocol.h; sourceTree = "<group>"; };
 		5B94A6BA1B8151B300FE9283 /* CollectionViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CollectionViewController.h; sourceTree = "<group>"; };
 		5B94A6BB1B8151B300FE9283 /* CollectionViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CollectionViewController.m; sourceTree = "<group>"; };
-		5B94A6BC1B8151B300FE9283 /* DataViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DataViewController.h; path = BugMonitor/DataViewController.h; sourceTree = "<group>"; };
-		5B94A6BD1B8151B300FE9283 /* DataViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = DataViewController.m; path = BugMonitor/DataViewController.m; sourceTree = "<group>"; };
 		5B94A6C01B8151B300FE9283 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = InfoPlist.strings; sourceTree = "<group>"; };
 		5B94A6C31B8151B300FE9283 /* charge_battery.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = charge_battery.png; sourceTree = "<group>"; };
 		5B94A6C41B8151B300FE9283 /* fully_charged_battery.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fully_charged_battery.png; sourceTree = "<group>"; };
@@ -205,8 +202,6 @@
 		5B94A6FA1B8151B300FE9283 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		5B94A6FD1B8151B300FE9283 /* MasterViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MasterViewController.h; sourceTree = "<group>"; };
 		5B94A6FE1B8151B300FE9283 /* MasterViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MasterViewController.m; sourceTree = "<group>"; };
-		5B94A7011B8151B300FE9283 /* OptionsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OptionsViewController.h; path = BugMonitor/OptionsViewController.h; sourceTree = "<group>"; };
-		5B94A7021B8151B300FE9283 /* OptionsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = OptionsViewController.m; path = BugMonitor/OptionsViewController.m; sourceTree = "<group>"; };
 		5B94A7051B8151B300FE9283 /* PubSubMsg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PubSubMsg.h; sourceTree = "<group>"; };
 		5B94A7061B8151B300FE9283 /* PubSubMsg.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PubSubMsg.m; sourceTree = "<group>"; };
 		5B94A7071B8151B300FE9283 /* RCViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RCViewController.h; path = BugMonitor/RCViewController.h; sourceTree = "<group>"; };
@@ -217,8 +212,6 @@
 		5B94A70E1B8151B300FE9283 /* SettingsDetail-iPhone.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = "SettingsDetail-iPhone.xib"; path = "BugMonitor/SettingsDetail-iPhone.xib"; sourceTree = "<group>"; };
 		5B94A70F1B8151B300FE9283 /* SettingsDetailViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SettingsDetailViewController.h; path = BugMonitor/SettingsDetailViewController.h; sourceTree = "<group>"; };
 		5B94A7101B8151B300FE9283 /* SettingsDetailViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SettingsDetailViewController.m; path = BugMonitor/SettingsDetailViewController.m; sourceTree = "<group>"; };
-		5B94A7111B8151B300FE9283 /* SettingsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SettingsViewController.h; path = BugMonitor/SettingsViewController.h; sourceTree = "<group>"; };
-		5B94A7121B8151B300FE9283 /* SettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SettingsViewController.m; path = BugMonitor/SettingsViewController.m; sourceTree = "<group>"; };
 		5B94A7151B8151B300FE9283 /* SubsystemViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SubsystemViewController.h; path = BugMonitor/SubsystemViewController.h; sourceTree = "<group>"; };
 		5B94A7161B8151B300FE9283 /* SubsystemViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = SubsystemViewController.m; path = BugMonitor/SubsystemViewController.m; sourceTree = "<group>"; };
 		5B94A7171B8151B300FE9283 /* SystemViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SystemViewController.h; path = BugMonitor/SystemViewController.h; sourceTree = "<group>"; };
@@ -254,7 +247,6 @@
 				5B2D13C51C961A18001B5291 /* Messages.h */,
 				5B2D13C61C961A18001B5291 /* mxml-2.9 */,
 				5B2D141C1C961A18001B5291 /* PortablePrint.h */,
-				5B2D141E1C961A18001B5291 /* PubSubData.h */,
 				5B2D141F1C961A18001B5291 /* PubSubParser.h */,
 				5B2D14201C961A18001B5291 /* Waypoints.h */,
 			);
@@ -275,6 +267,9 @@
 		5B2D13BC1C961A18001B5291 /* messages */ = {
 			isa = PBXGroup;
 			children = (
+				5B2650941CD874B1005465EE /* NotificationConditionsListErrors.h */,
+				5B2650951CD874B1005465EE /* NotificationConditionsListProximity.h */,
+				5B2650961CD874B1005465EE /* NotificationConditionsListStatus.h */,
 				5B2D13BD1C961A18001B5291 /* MessageEnums.h */,
 				5B2D13BE1C961A18001B5291 /* MessageFormats.h */,
 				5B2D13BF1C961A18001B5291 /* MessageList.h */,
@@ -319,8 +314,8 @@
 		5B94A68A1B81511E00FE9283 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5B94A6891B81511E00FE9283 /* BugMonitor.app */,
-				5B94A6A21B81511E00FE9283 /* BugMonitorTests.xctest */,
+				5B94A6891B81511E00FE9283 /* HexBug Monitor.app */,
+				5B94A6A21B81511E00FE9283 /* HexBug Monitor.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -470,20 +465,14 @@
 				5B2D13B01C9619F2001B5291 /* BehaviorViewController.m */,
 				5B2D13B31C9619F2001B5291 /* ConditionsViewController.h */,
 				5B2D13B11C9619F2001B5291 /* ConditionsViewController.m */,
-				5B94A6BC1B8151B300FE9283 /* DataViewController.h */,
-				5B94A6BD1B8151B300FE9283 /* DataViewController.m */,
 				5B94A6F81B8151B300FE9283 /* LogViewController.h */,
 				5B94A6F91B8151B300FE9283 /* LogViewController.m */,
-				5B94A7011B8151B300FE9283 /* OptionsViewController.h */,
-				5B94A7021B8151B300FE9283 /* OptionsViewController.m */,
 				5B94A7071B8151B300FE9283 /* RCViewController.h */,
 				5B94A7081B8151B300FE9283 /* RCViewController.m */,
 				5B94A70D1B8151B300FE9283 /* SettingsDetail-iPad.xib */,
 				5B94A70E1B8151B300FE9283 /* SettingsDetail-iPhone.xib */,
 				5B94A70F1B8151B300FE9283 /* SettingsDetailViewController.h */,
 				5B94A7101B8151B300FE9283 /* SettingsDetailViewController.m */,
-				5B94A7111B8151B300FE9283 /* SettingsViewController.h */,
-				5B94A7121B8151B300FE9283 /* SettingsViewController.m */,
 				5B94A7151B8151B300FE9283 /* SubsystemViewController.h */,
 				5B94A7161B8151B300FE9283 /* SubsystemViewController.m */,
 				5B94A7171B8151B300FE9283 /* SystemViewController.h */,
@@ -513,9 +502,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5B94A6881B81511E00FE9283 /* BugMonitor */ = {
+		5B94A6881B81511E00FE9283 /* HexBug Monitor */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5B94A6AA1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "BugMonitor" */;
+			buildConfigurationList = 5B94A6AA1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "HexBug Monitor" */;
 			buildPhases = (
 				5B94A6851B81511E00FE9283 /* Sources */,
 				5B94A6861B81511E00FE9283 /* Frameworks */,
@@ -525,14 +514,14 @@
 			);
 			dependencies = (
 			);
-			name = BugMonitor;
+			name = "HexBug Monitor";
 			productName = BugMonitor;
-			productReference = 5B94A6891B81511E00FE9283 /* BugMonitor.app */;
+			productReference = 5B94A6891B81511E00FE9283 /* HexBug Monitor.app */;
 			productType = "com.apple.product-type.application";
 		};
-		5B94A6A11B81511E00FE9283 /* BugMonitorTests */ = {
+		5B94A6A11B81511E00FE9283 /* HexBug MonitorTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5B94A6AD1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "BugMonitorTests" */;
+			buildConfigurationList = 5B94A6AD1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "HexBug MonitorTests" */;
 			buildPhases = (
 				5B94A69E1B81511E00FE9283 /* Sources */,
 				5B94A69F1B81511E00FE9283 /* Frameworks */,
@@ -543,9 +532,9 @@
 			dependencies = (
 				5B94A6A41B81511E00FE9283 /* PBXTargetDependency */,
 			);
-			name = BugMonitorTests;
+			name = "HexBug MonitorTests";
 			productName = BugMonitorTests;
-			productReference = 5B94A6A21B81511E00FE9283 /* BugMonitorTests.xctest */;
+			productReference = 5B94A6A21B81511E00FE9283 /* HexBug Monitor.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -566,7 +555,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 5B94A6821B8150C800FE9283 /* Build configuration list for PBXProject "BugMonitor" */;
+			buildConfigurationList = 5B94A6821B8150C800FE9283 /* Build configuration list for PBXProject "HexBug Monitor" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -579,8 +568,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5B94A6881B81511E00FE9283 /* BugMonitor */,
-				5B94A6A11B81511E00FE9283 /* BugMonitorTests */,
+				5B94A6881B81511E00FE9283 /* HexBug Monitor */,
+				5B94A6A11B81511E00FE9283 /* HexBug MonitorTests */,
 			);
 		};
 /* End PBXProject section */
@@ -667,7 +656,6 @@
 				5B2D14221C961A18001B5291 /* pubsubparser.c in Sources */,
 				5B2D14211C961A18001B5291 /* MessageLengths.c in Sources */,
 				5B2D145B1C961A18001B5291 /* mxml-search.c in Sources */,
-				5B94A7231B8151B300FE9283 /* DataViewController.m in Sources */,
 				5B2D14541C961A18001B5291 /* mxml-attr.c in Sources */,
 				5B2D13B41C9619F2001B5291 /* BehaviorViewController.m in Sources */,
 				5B2D14551C961A18001B5291 /* mxml-entity.c in Sources */,
@@ -676,7 +664,6 @@
 				5B2D14561C961A18001B5291 /* mxml-file.c in Sources */,
 				5B2D14581C961A18001B5291 /* mxml-index.c in Sources */,
 				5B2D13B51C9619F2001B5291 /* ConditionsViewController.m in Sources */,
-				5B94A7631B8151B300FE9283 /* SettingsViewController.m in Sources */,
 				5B94A71E1B8151B300FE9283 /* AppDelegate.m in Sources */,
 				5B94A75D1B8151B300FE9283 /* RCViewController.m in Sources */,
 				5B2D14231C961A18001B5291 /* Waypoints.c in Sources */,
@@ -685,7 +672,6 @@
 				5B94A7561B8151B300FE9283 /* main.m in Sources */,
 				5B94A7221B8151B300FE9283 /* CollectionViewController.m in Sources */,
 				5B2D14591C961A18001B5291 /* mxml-node.c in Sources */,
-				5B94A75A1B8151B300FE9283 /* OptionsViewController.m in Sources */,
 				5B2D145C1C961A18001B5291 /* mxml-set.c in Sources */,
 				5B94A7661B8151B300FE9283 /* SystemViewController.m in Sources */,
 				5B94A75C1B8151B300FE9283 /* PubSubMsg.m in Sources */,
@@ -706,7 +692,7 @@
 /* Begin PBXTargetDependency section */
 		5B94A6A41B81511E00FE9283 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5B94A6881B81511E00FE9283 /* BugMonitor */;
+			target = 5B94A6881B81511E00FE9283 /* HexBug Monitor */;
 			targetProxy = 5B94A6A31B81511E00FE9283 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -798,8 +784,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)BugMonitor";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "HexBug-Monitor";
+				PRODUCT_NAME = "HexBug Monitor";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -843,8 +829,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 8.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)BugMonitor";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "HexBug-Monitor";
+				PRODUCT_NAME = "HexBug Monitor";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -901,9 +887,9 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mgls.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "HexBug Monitor";
 				SDKROOT = iphoneos;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BugMonitor.app/BugMonitor";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HexBug Monitor.app/HexBug Monitor";
 				USER_HEADER_SEARCH_PATHS = /Users/martin/RoboticsCodebase/BUG/Bug_Edison/Modules;
 			};
 			name = Debug;
@@ -951,9 +937,9 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.mgls.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "HexBug Monitor";
 				SDKROOT = iphoneos;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BugMonitor.app/BugMonitor";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HexBug Monitor.app/HexBug Monitor";
 				USER_HEADER_SEARCH_PATHS = /Users/martin/RoboticsCodebase/BUG/Bug_Edison/Modules;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -962,7 +948,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5B94A6821B8150C800FE9283 /* Build configuration list for PBXProject "BugMonitor" */ = {
+		5B94A6821B8150C800FE9283 /* Build configuration list for PBXProject "HexBug Monitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5B94A6831B8150C800FE9283 /* Debug */,
@@ -971,7 +957,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5B94A6AA1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "BugMonitor" */ = {
+		5B94A6AA1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "HexBug Monitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5B94A6AB1B81511F00FE9283 /* Debug */,
@@ -980,7 +966,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5B94A6AD1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "BugMonitorTests" */ = {
+		5B94A6AD1B81511F00FE9283 /* Build configuration list for PBXNativeTarget "HexBug MonitorTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5B94A6AE1B81511F00FE9283 /* Debug */,
