@@ -66,8 +66,6 @@ void CheckBugState();						//compare Arbotix and system states
 void ReportArbStatus(ArbotixState_enum s);	//report Arbotix status to system
 void SetArbotixPower(bool enable);
 
-int arbUartFD;								//Arbotix uart file descriptor
-
 ArbotixState_enum 	arbState = ARB_OFFLINE;	//latest reported from Arbotix state machine
 
 //names for log messages
@@ -77,9 +75,10 @@ static char *msgTypes_L[] = DEBUG_MSG_L;	//Arbotix message types
 int lowVoltageError = false;
 
 mraa_uart_context uartContext;
-int arbotixFD;
+int arbUartFD;								//Arbotix uart file descriptor
 
 int ArbotixInit() {
+	struct termios settings;
 
 	arbotixDebugFile = fopen_logfile("arbotix");
 	DEBUGPRINT("Arbotix Logfile opened\n");
@@ -91,7 +90,24 @@ int ArbotixInit() {
 		return -1;
 	}
 
-	arbotixFD = uartContext->fd;
+	arbUartFD = uartContext->fd;
+
+
+	if (tcgetattr(arbUartFD, &settings) != 0) {
+		ERRORPRINT("tcgetattr: %s\n", strerror(errno));
+		return -1;
+	}
+
+	//no processing
+	settings.c_iflag = 0;
+	settings.c_oflag = 0;
+	settings.c_lflag = 0;
+	settings.c_cflag = CLOCAL | CREAD | CS8;        //no modem, 8-bits
+
+	if (tcsetattr(arbUartFD, TCSANOW, &settings) != 0) {
+		ERRORPRINT("uart: tcsetattr error - %s\n", strerror(errno));
+		return -1;
+	}
 
 	if (mraa_uart_set_baudrate(uartContext, ARB_UART_BAUDRATE) != MRAA_SUCCESS)
 	{
@@ -173,18 +189,17 @@ void *ArbRxThread(void *a) {
 	int csum;
 	int i;
 
-	unsigned char *msgChars = (unsigned char *) &arbMsg.intValues;
-	int msgLen = MSG_INTS * 2;
 
 	DEBUGPRINT("Arbotix Rx thread ready\n");
 
 	SendGetStatus();
 
 	while (1) {
-		//read next message from Arbotix
-		for (i = 0; i < MSG_LEN; i++) {
-			msgChars[i] = 0;
-		}
+		//read next message from ArbotixM
+		unsigned char *msgChars = (unsigned char *) &arbMsg;
+
+		memset(&arbMsg, 0, sizeof(message_t));
+
 		//scan for '@'
 		c = 0;
 		while (c != MSG_START)
@@ -194,154 +209,159 @@ void *ArbRxThread(void *a) {
 
 		DEBUGPRINT("arbotix: message start\n");
 
-		//read message type
-		count = 0;
-		while (count == 0)
-		{
-			count = read(arbUartFD, &arbMsg.msgType, 1);
-		}
-		//read rest
-		count = 0;
-		while (count < msgLen)
-		{
-			count += read(arbUartFD, msgChars + count , msgLen - count);
-		}
-		if (count == msgLen) {
-			//valid length
-			csum = arbMsg.msgType;
-			//calculate checksum
-			for (i = 0; i < msgLen; i++) {
-				csum += msgChars[i];
-			}
-			//read checksum
-			count = 0;
-			while (count == 0)
-			{
-				count = read(arbUartFD, &c, 1);
-			}
-			if (count == 1 && c == (csum & 0xff)) {
-				//valid checksum
-				if (arbMsg.msgType < MSG_TYPE_COUNT)
+//		//read message type
+//		count = 0;
+//		do
+//		{
+//			count = read(arbUartFD, &arbMsg.msgType, 1);
+//
+//		} while (count == 0 || count == EAGAIN);
+//
+//		if (count == 1)
+//		{
+			//read the message
+			count = sizeof(message_t);
+			do {
+				int readchars;
+
+				do {
+					readchars = read(arbUartFD, msgChars, count);
+				} while (readchars == EAGAIN);
+
+				if (readchars >= 0)
 				{
-					DEBUGPRINT("Arbotix Rx: %s\n", msgTypes_L[arbMsg.msgType]);
+					count -= readchars;
+					msgChars += readchars;
 				}
-				else
-				{
-					ERRORPRINT("bad msgType: %i -", arbMsg.msgType);
-					for (i = 0; i < MSG_INTS; i++) {
-						ERRORPRINT(" %i", arbMsg.intValues[i]);
-					}
-					ERRORPRINT("\n");
+				else break;
+			}
+			while (count > 0);
+
+			if (count < 0) DEBUGPRINT("arbotix: read error: %s\n", strerror(count));
+
+			if (count == 0) {
+				//whole payload read
+				msgChars =  (unsigned char *)  &arbMsg;
+
+				DEBUGPRINT("arbotix read: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
+
+				//calculate checksum
+				csum = 0;
+				for (i = 0; i < sizeof(message_t); i++) {
+					csum += *msgChars++;
 				}
-				switch (arbMsg.msgType) {
-				case MSG_TYPE_STATUS:    //Status report payload
-					if (arbMsg.state < AX_STATE_COUNT)
+				//read checksum
+				count = 0;
+				do {
+					count = read(arbUartFD, &c, 1);
+				}  while (count == 0 || count == EAGAIN);
+
+				if (count == 1 && c == (csum & 0xff)) {
+					//valid checksum
+					if (arbMsg.msgType < MSG_TYPE_COUNT)
 					{
-						DEBUGPRINT("arbotix: status message: %s\n", arbStateNames[arbMsg.state])
+						DEBUGPRINT("Arbotix Rx: %s\n", msgTypes_L[arbMsg.msgType]);
 					}
 					else
 					{
-						DEBUGPRINT("arbotix: status message: %u\n", arbMsg.state);
+						ERRORPRINT("arbotix: bad msgType: %i -", arbMsg.msgType);
 					}
-					lastStatusMessage = arbMsg;
-					statusTimeout = time(NULL) + arbTimeout;
-					ReportArbStatus(arbMsg.state);
-					CheckBugState();
-
-					switch(arbState)
-					{
-					case ARB_STOPPING:		 //in process of stopping
-					case ARB_SITTING:        //in process of sitting down
-					case ARB_STANDING:       //in process of standing
-						actionTimeout = time(NULL) + arbTimeout;
-						break;
-					default:
-						actionTimeout = -1;
-						break;
-					}
-					break;
-					case MSG_TYPE_POSE:      //leg position payload
-						DEBUGPRINT("Leg %i: X=%i Y=%i Z=%i\n", arbMsg.legNumber, arbMsg.x, arbMsg.y, arbMsg.z );
-						break;
-					case MSG_TYPE_SERVOS:    //Servo payload
-						DEBUGPRINT("Leg %i: Coxa=%i Femur=%i Tibia=%i\n", arbMsg.legNumber, arbMsg.coxa, arbMsg.femur, arbMsg.tibia );
-						break;
-					case MSG_TYPE_MSG:       //Text message
-						DEBUGPRINT("arbotix: %4s\n", arbMsg.text);
-						break;
-					case MSG_TYPE_ODOMETRY: {
-						psMessage_t msg;
-						if (stepsRemaining > 0)
-							stepsRemaining--;
-						psInitPublish(msg, ODOMETRY);
-						msg.odometryPayload.xMovement = arbMsg.xMovement;
-						msg.odometryPayload.yMovement = arbMsg.yMovement;
-						msg.odometryPayload.zRotation = arbMsg.zRotation;
-
-						NewBrokerMessage(&msg);
-					}
-					break;
-					case MSG_TYPE_VOLTS:     //Text message
-						lastVoltsMessage = arbMsg;
-						DEBUGPRINT("arbotix: batt: %0.1fV\n",
-								(float) (arbMsg.volts / 10));
-						break;
-					case MSG_TYPE_FAIL:
-						ERRORPRINT("arb: Fail: %s = %i\n", servoNames[arbMsg.servo], arbMsg.angle);
-						break;
-					case MSG_TYPE_ERROR:
-					{
-						if (arbMsg.errorCode >= 0 && arbMsg.errorCode < MSG_TYPE_COUNT)
+					switch (arbMsg.msgType) {
+					case MSG_TYPE_STATUS:    //Status report payload
+						if (arbMsg.state < AX_STATE_COUNT)
 						{
-							if (arbMsg.errorCode < MSG_TYPE_UNKNOWN)
-							{
-								DEBUGPRINT("Debug: %s\n", msgTypes_L[arbMsg.errorCode]);
-							}
-							else
-							{
-								DEBUGPRINT("Error: %s\n", msgTypes_L[arbMsg.errorCode]);
-								switch(arbMsg.errorCode)
-								{
-								case LOW_VOLTAGE:
-									lowVoltageError = true;
-									CheckBugState();
-									break;
-								default:
-									break;
-								}
-							}
+							DEBUGPRINT("arbotix: status message: %s\n", arbStateNames[arbMsg.state])
 						}
 						else
 						{
-							DEBUGPRINT("debug: %i?\n", arbMsg.errorCode);
+							DEBUGPRINT("arbotix: bad status message: %u\n", arbMsg.state);
 						}
-					}
-					break;
-					default:
-						break;
-				}
-			}
-			else
-			{
-				ERRORPRINT("Bad checksum:\n");
-				for (i = 0; i < MSG_LEN; i++) {
-					ERRORPRINT(" %i", msgChars[i]);
-				}
+						lastStatusMessage = arbMsg;
+						statusTimeout = time(NULL) + arbTimeout;
+						ReportArbStatus(arbMsg.state);
+						CheckBugState();
 
-				ERRORPRINT(". sum=%x.\nExpected %02x, got %02x\n", csum, (csum & 0xff), c);
+						switch(arbState)
+						{
+						case ARB_STOPPING:		 //in process of stopping
+						case ARB_SITTING:        //in process of sitting down
+						case ARB_STANDING:       //in process of standing
+							actionTimeout = time(NULL) + arbTimeout;
+							break;
+						default:
+							actionTimeout = -1;
+							break;
+						}
+						break;
+						case MSG_TYPE_POSE:      //leg position payload
+							DEBUGPRINT("arbotix: Leg %i: X=%i Y=%i Z=%i\n", arbMsg.legNumber, arbMsg.x, arbMsg.y, arbMsg.z );
+							break;
+						case MSG_TYPE_SERVOS:    //Servo payload
+							DEBUGPRINT("arbotix: Leg %i: Coxa=%i Femur=%i Tibia=%i\n", arbMsg.legNumber, arbMsg.coxa, arbMsg.femur, arbMsg.tibia );
+							break;
+						case MSG_TYPE_MSG:       //Text message
+							DEBUGPRINT("arbotix: %4s\n", arbMsg.text);
+							break;
+						case MSG_TYPE_ODOMETRY: {
+							psMessage_t msg;
+							if (stepsRemaining > 0)
+								stepsRemaining--;
+							psInitPublish(msg, ODOMETRY);
+							msg.odometryPayload.xMovement = arbMsg.xMovement;
+							msg.odometryPayload.yMovement = arbMsg.yMovement;
+							msg.odometryPayload.zRotation = arbMsg.zRotation;
+
+							NewBrokerMessage(&msg);
+						}
+						break;
+						case MSG_TYPE_VOLTS:     //Text message
+							lastVoltsMessage = arbMsg;
+							DEBUGPRINT("arbotix: batt: %0.1fV\n",
+									(float) (arbMsg.volts / 10));
+							break;
+						case MSG_TYPE_FAIL:
+							ERRORPRINT("arbotix: Fail: %s = %i\n", servoNames[arbMsg.servo], arbMsg.angle);
+							break;
+						case MSG_TYPE_ERROR:
+						{
+							if (arbMsg.errorCode >= 0 && arbMsg.errorCode < MSG_TYPE_COUNT)
+							{
+								if (arbMsg.errorCode < MSG_TYPE_UNKNOWN)
+								{
+									DEBUGPRINT("arbotix: Debug: %s\n", msgTypes_L[arbMsg.errorCode]);
+								}
+								else
+								{
+									DEBUGPRINT("arbotix: Error: %s\n", msgTypes_L[arbMsg.errorCode]);
+									switch(arbMsg.errorCode)
+									{
+									case LOW_VOLTAGE:
+										lowVoltageError = true;
+										CheckBugState();
+										break;
+									default:
+										break;
+									}
+								}
+							}
+							else
+							{
+								DEBUGPRINT("arbotix: debug: %i?\n", arbMsg.errorCode);
+							}
+						}
+						break;
+						default:
+							break;
+					}
+				}
+				else
+				{
+					msgChars =  (unsigned char *)  &arbMsg;
+					ERRORPRINT("arbotix checksum! %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
+					ERRORPRINT("arbotix: sum=%x. Expected %02x, got %02x\n", csum, (csum & 0xff), c);
+				}
 			}
-		}
-		else
-		{
-			if (count < 0)
-			{
-				ERRORPRINT("Read error %s\n", strerror(errno));
-			}
-			else
-			{
-				ERRORPRINT("Read %i bytes\n", count);
-			}
-		}
+
 	}
 	return NULL;
 }
@@ -349,7 +369,7 @@ void *ArbRxThread(void *a) {
 //thread to check for ArbotixM command timeouts
 void *ArbTimeoutThread(void *a)
 {
-	DEBUGPRINT("Arbotix Timeout thread started\n");
+	DEBUGPRINT("arbotix Timeout thread started\n");
 
 	while (1)
 	{
@@ -361,22 +381,22 @@ void *ArbTimeoutThread(void *a)
 		case ARB_STANDING:       //in process of standing
 			if (actionTimeout > 0 && actionTimeout < time(NULL))
 			{
-				ERRORPRINT("Timeout\n");
+				ERRORPRINT("arbotix: Timeout\n");
 				ReportArbStatus(ARB_TIMEOUT);
 				SendGetStatus();
 			}
 			break;
+		default:
 			//error states
 		case ARB_STATE_UNKNOWN:	//start up
 		case ARB_TIMEOUT:		//no response to command
 		case ARB_ERROR:			//error reported
 			if (statusTimeout < time(NULL))
 			{
-				DEBUGPRINT("Timeout GetStatus\n");
+				DEBUGPRINT("arbotix: timeout GetStatus\n");
 				SendGetStatus();
 			}
-			break;
-		default:
+
 			break;
 		}
 		sleep(1);
@@ -388,7 +408,7 @@ void *ArbTimeoutThread(void *a)
 pthread_mutex_t	bugStateMtx = PTHREAD_MUTEX_INITIALIZER;
 void CheckBugState()
 {
-//	DEBUGPRINT("bugSystemState= %s, arbState= %s\n", powerStateNames[systemPowerState],  arbStateNames[arbState]);
+	//	DEBUGPRINT("bugSystemState= %s, arbState= %s\n", powerStateNames[systemPowerState],  arbStateNames[arbState]);
 
 	//critical section
 	int s = pthread_mutex_lock(&bugStateMtx);
@@ -446,29 +466,28 @@ void CheckBugState()
 	//end critical section
 }
 
+//write byte
+int writeByte(unsigned char c)
+{
+	int written = 0;
+	do
+	{
+		written = write(arbUartFD, &c, 1);
+	} while (written == EAGAIN || written == 0);
+
+	return written;
+}
+
 //send message to ArbotixM
 pthread_mutex_t	arbMsgMtx = PTHREAD_MUTEX_INITIALIZER;
 int SendArbMessage(message_t *arbMsg) {
-	int count;
+
 	int result = 0;
 	int csum = 0;
 	int i;
+	unsigned char *msgChars = (unsigned char*) arbMsg;
 
-	int dataLen = MSG_INTS * 2;		//payload only
-	int msgLen  = dataLen + 3;		//plus @, msgType, csum
-	unsigned char msgChars[msgLen];
-	msgChars[0] = MSG_START;
-	msgChars[1] = arbMsg->msgType;
-
-	memcpy(&msgChars[2], (void*) &arbMsg->intValues, dataLen);
-
-	//calculate checksum
-	for (i = 1; i < dataLen+2; i++) {
-		csum += msgChars[i];
-	}
-	msgChars[msgLen-1] = csum & 0xff;
-
-	DEBUGPRINT("Arb Tx: %s\n", msgTypes_L[arbMsg->msgType]);
+	DEBUGPRINT("arbotix write: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
 
 	//critical section
 	int m = pthread_mutex_lock(&arbMsgMtx);
@@ -476,27 +495,33 @@ int SendArbMessage(message_t *arbMsg) {
 	{
 		ERRORPRINT("arbMsgMtx lock %i\n", m);
 	}
-	count = MSG_LEN+2;
-	while (count > 0)
+
+	writeByte(MSG_START);
+
+	for (i=0; i<sizeof(message_t); i++)
 	{
-		int written = write(arbUartFD, msgChars + MSG_LEN + 2 - count, count);
-		count -= written;
+		writeByte(*msgChars);
+		csum += *msgChars++;
 	}
+
+	writeByte(csum & 0xff);
+
 	m = pthread_mutex_unlock(&arbMsgMtx);
 	if (m != 0)
 	{
 		ERRORPRINT("arbMsgMtx unlock %i\n", m);
 	}
 	//end critical section
+
+	DEBUGPRINT("Arb Tx: %s\n", msgTypes_L[arbMsg->msgType]);
+
 	return result;
 }
-
-#define ZERO_MSG(X) {int i;for(i=0;i<MSG_INTS;i++) X.intValues[i]=0;}
 
 //functions to send various messages to the ArbotixM
 void SendGetStatus() {
 	message_t arbMsg;
-	ZERO_MSG(arbMsg);
+	memset(&arbMsg, 0, sizeof(message_t));
 	arbMsg.msgType = MSG_TYPE_GETSTATUS;
 	if (SendArbMessage(&arbMsg) == 0)
 	{
@@ -506,7 +531,7 @@ void SendGetStatus() {
 //send command only
 void SendActionCommand(msgType_enum m) {
 	message_t arbMsg;
-	ZERO_MSG(arbMsg);
+	memset(&arbMsg, 0, sizeof(message_t));
 	arbMsg.msgType = m;
 	if (SendArbMessage(&arbMsg) == 0)
 	{
@@ -516,7 +541,7 @@ void SendActionCommand(msgType_enum m) {
 //send GET_POSE command plus legNumber
 void SendGetPose(int leg) {
 	message_t arbMsg;
-	ZERO_MSG(arbMsg);
+	memset(&arbMsg, 0, sizeof(message_t));
 	arbMsg.legNumber = leg;
 	arbMsg.msgType = MSG_TYPE_GET_POSE;
 	SendArbMessage(&arbMsg);
@@ -536,6 +561,7 @@ void ReportArbStatus(ArbotixState_enum s) {
 		}
 
 		arbState = s;
+
 		psInitPublish(msg, ARB_STATE);
 		msg.bytePayload.value = s;
 		NewBrokerMessage(&msg);

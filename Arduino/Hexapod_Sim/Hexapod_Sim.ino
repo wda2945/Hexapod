@@ -37,31 +37,25 @@ message_t        message;  //received message
 msgType_enum     lastCommand = MSG_TYPE_NONE;
 unsigned long    msgTime;
 
+#define SMART_BASIC_SEL 5
+#define LED_PIN 13
 void setup()
 {
   char volts[5];
 
-  delay(100);
+  delay(500);
 
   // setup serial
-//  Serial.begin(9600);
   Serial.begin(38400);
 
-  // wait, then check the voltage (LiPO safety)
-  delay (1000);
-  SendVoltage();
+  pinMode(SMART_BASIC_SEL, OUTPUT);
+  digitalWrite(SMART_BASIC_SEL, HIGH);
 
-  if (lowVoltage)
-  {
-#ifdef VOLT_CHECK
-    while(lowVoltage)
-    {
-      delay(5000);
-      ErrorMessage(LOW_VOLTAGE);
-      SendVoltage();
-    }
-#endif
-  }
+  pinMode(LED_PIN, OUTPUT);
+  
+  // wait, then check the voltage (LiPO safety)
+  delay (100);
+
   SendStatus(AX_TORQUED);
 }
 int CheckForMessage()

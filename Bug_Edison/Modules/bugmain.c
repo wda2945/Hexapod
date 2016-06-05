@@ -86,6 +86,16 @@ int main(int argc, const char * argv[])
 //	LSM303StartCalibrate();
 
 	//init subsystems
+	//start broker thread
+	if (Broker_INIT() != 0)
+	{
+		ERRORPRINT( "BrokerInit() fail\n");
+		initFail = "broker";
+	}
+	else {
+		DEBUGPRINT("BrokerInit() OK\n");
+	}
+
 	//broker queue
 	if (BrokerQueueInit(100) != 0)
 	{
@@ -196,16 +206,6 @@ int main(int argc, const char * argv[])
 		DEBUGPRINT("NavigatorInit() OK\n");
 	}
 
-	//start broker threads
-	if (Broker_INIT() != 0)
-	{
-		ERRORPRINT( "BrokerInit() fail\n");
-		initFail = "broker";
-	}
-	else {
-		DEBUGPRINT("BrokerInit() OK\n");
-	}
-
 	if (Responder_INIT() != 0)
 	{
 		ERRORPRINT( "ResponderInit() fail\n");
@@ -263,6 +263,11 @@ int main(int argc, const char * argv[])
 
 	while(1)
 	{
+		psMessage_t msg;
+		psInitPublish(msg, TICK_1S);
+		msg.tickPayload.systemPowerState = POWER_ACTIVE;
+		NewBrokerMessage(&msg);
+
 		sleep(1);
 	}
 

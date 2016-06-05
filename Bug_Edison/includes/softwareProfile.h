@@ -13,20 +13,20 @@
 #define EDISON
 
 #define 	Agent_INIT()		AgentInit()
-#define		Arbotix_INIT()		0 //ArbotixInit()
+#define		Arbotix_INIT()		ArbotixInit()
 #define		Autopilot_INIT()	0 //AutopilotInit()
 #define		Behavior_INIT()		BehaviorInit()
 #define		Dancer_INIT()		0 //DancerInit()
 #define		Gripper_INIT()		0 //GripperInit()
 #define		I2C_INIT()			0 //I2CInit()
-#define		Lidar_INIT()		LidarInit()
+#define		Lidar_INIT()		0 //LidarInit()
 #define		Navigator_INIT()	0 //NavigatorInit()
 #define		Responder_INIT()	ResponderInit()
 #define		SysLog_INIT()		SysLogInit()
 #define 	Broker_INIT()		BrokerInit()
 
 #define 	Agent_PROCESS_MESSAGE(msg)		AgentProcessMessage(msg)
-#define		Arbotix_PROCESS_MESSAGE(msg)	//ArbotixProcessMessage(msg)
+#define		Arbotix_PROCESS_MESSAGE(msg)	ArbotixProcessMessage(msg)
 #define		Autopilot_PROCESS_MESSAGE(msg)	//AutopilotProcessMessage(msg)
 #define		Behavior_PROCESS_MESSAGE(msg)	//BehaviorProcessMessage(msg)
 #define		Dancer_PROCESS_MESSAGE(msg)		//DancerProcessMessage(msg)

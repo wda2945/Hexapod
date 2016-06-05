@@ -102,7 +102,7 @@ void CancelCondition(Condition_enum e)
     ValidConditions |= maskBit;
     pthread_mutex_unlock(&conditionMutex);
 
-    LogRoutine("Cancel: %s\n", conditionNames[e]);
+    DEBUGPRINT("Cancel: %s\n", conditionNames[e]);
 }
 
 //publish conditions if changed, or if forced

@@ -189,7 +189,7 @@ void *LidarThread(void *arg)
 			ERRORPRINT("waitPoint() timeout\n");
 			sleep(2);
 			sendRPLidarReset();
-			sleep(1)
+			sleep(1);
 			startRPLidarScan(true);
 			continue;
 		}
