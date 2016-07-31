@@ -1,5 +1,5 @@
 /*
- * BT Callbacks.c
+ * callbacks_proximity.cpp
  *
  *  Created on: Aug 10, 2014
  *      Author: martin

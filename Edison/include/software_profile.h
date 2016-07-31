@@ -9,25 +9,14 @@
 #ifndef software_profile_h
 #define software_profile_h
 
-#define HEXAPOD
-#define EDISON
-
 #define		Arbotix_INIT()		ArbotixInit()
 #define		Autopilot_INIT()	0 //AutopilotInit()
 #define		Behavior_INIT()		BehaviorInit()
 #define		Dancer_INIT()		0 //DancerInit()
-#define		I2C_INIT()			0 //I2CInit()
-#define		Lidar_INIT()		0 //LidarInit()
+#define		I2C_INIT()			I2CInit()
+#define		Scanner_INIT()		ScannerInit()
 #define		Navigator_INIT()	0 //NavigatorInit()
-#define		Responder_INIT()	0 //ResponderInit()
-
-#define		Arbotix_PROCESS_MESSAGE(msg)	//ArbotixProcessMessage(msg)
-#define		Autopilot_PROCESS_MESSAGE(msg)	//AutopilotProcessMessage(msg)
-#define		Behavior_PROCESS_MESSAGE(msg)	//BehaviorProcessMessage(msg)
-#define		Dancer_PROCESS_MESSAGE(msg)		//DancerProcessMessage(msg)
-#define		I2C_PROCESS_MESSAGE(msg)		//I2CProcessMessage(msg)
-#define		Navigator_PROCESS_MESSAGE(msg)	//NavigatorProcessMessage(msg)
-#define		Responder_PROCESS_MESSAGE(msg)	//ResponderProcessMessage(msg)
+#define		Responder_INIT()	ResponderInit()
 
 #define MAIN_DEBUG
 #define ARBOTIX_DEBUG
@@ -82,7 +71,6 @@
 //adjacent pins
 #define J19_9					MRAA_INTEL_EDISON_GP14
 #define J20_9					MRAA_INTEL_EDISON_GP42
-
 
 #define MESSAGE_DELAY 200
 

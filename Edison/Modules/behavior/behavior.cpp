@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <unistd.h>
 #include <time.h>
 #include <string.h>
 #include <pthread.h>
@@ -27,26 +27,11 @@
 FILE *behDebugFile;
 
 pthread_mutex_t	luaMtx = PTHREAD_MUTEX_INITIALIZER;
-
 BrokerQueue_t behaviorQueue = BROKER_Q_INITIALIZER;
-
-bool MCPonline 			= false;
-bool MCPconfigRequested = false;
-bool MCPconfigured		= false;
-time_t lastMCPresponseTime  = 0;
-time_t MCPconfigRequestedTime = 0;
-
-bool MOTonline 			= false;
-bool MOTconfigRequested = false;
-bool MOTconfigured		= false;
-time_t lastMOTresponseTime  = 0;
-time_t MOTconfigRequestedTime = 0;
-
-bool APPonline 	= false;
-time_t lastAPPresponseTime = 0;
 
 void *ScriptThread(void *arg);
 void *BehaviorMessageThread(void *arg);
+void BehaviorProcessMessage(const void *_msg, int len);
 
 int BehaviorInit()
 {
@@ -54,7 +39,6 @@ int BehaviorInit()
 	int s;
 
 	behDebugFile = fopen_logfile("behavior");
-	DEBUGPRINT("Behavior Logfile opened\n");
 
 	int result = InitScriptingSystem();
 	if (result == 0)
@@ -66,6 +50,8 @@ int BehaviorInit()
 		ERRORPRINT("Script system init fail: %i\n", result);
 		return -1;
 	}
+
+	RegisterAvailableScripts();
 
 	s = pthread_create(&thread, NULL, ScriptThread, NULL);
 	if (s != 0)
@@ -81,11 +67,14 @@ int BehaviorInit()
 		return -1;
 	}
 
+	ps_subscribe(SYS_ACTION_TOPIC, BehaviorProcessMessage);
+
 	return 0;
 }
 
-void BehaviorProcessMessage(psMessage_t *msg)
+void BehaviorProcessMessage(const void *_msg, int len)
 {
+	psMessage_t *msg = (psMessage_t *) _msg;
 	CopyMessageToQ(&behaviorQueue, msg);
 }
 
@@ -94,37 +83,11 @@ void *BehaviorMessageThread(void *arg)
 {
 	LogInfo("Behavior message thread started\n");
 
-	{
-		psMessage_t activityMsg;
-		psInitPublish(activityMsg, ACTIVITY);
-		strncpy(activityMsg.behaviorStatusPayload.behavior, "Idle", PS_SHORT_NAME_LENGTH);
-		activityMsg.behaviorStatusPayload.status = BEHAVIOR_ACTIVE;
-		activityMsg.behaviorStatusPayload.lastLuaCallFail[0] = '\0';
-		activityMsg.behaviorStatusPayload.lastFailReason[0] = '\0';
-		RouteMessage(activityMsg);
-	}
-
 	while (1)
 	{
 		psMessage_t *msg = GetNextMessage(&behaviorQueue);
 
-		//		DEBUGPRINT("BT msg: %s\n", psLongMsgNames[msg->header.messageType]);
-
-//		switch(msg->header.source)
-//		{
-//		case ROBO_APP:
-//			if (!APPonline)
-//			{
-//				APPonline = true;
-//				LogInfo("APP online\n");
-//			}
-//			lastAPPresponseTime = time(NULL);
-//			break;
-//		default:
-//			break;
-//		}
-
-		switch (msg->header.messageType)
+		switch (msg->messageType)
 		{
 			default:
 			{
@@ -154,10 +117,8 @@ void *BehaviorMessageThread(void *arg)
 //thread to run scripts periodically
 void *ScriptThread(void *arg)
 {
-	struct timespec requested_time = {0,0};
-	struct timespec remaining;
 
-	LogInfo("Script thread started\n");
+	LogInfo("Script update thread started\n");
 
 	while (1)
 	{
@@ -177,21 +138,13 @@ void *ScriptThread(void *arg)
 		}
 		//end critical section
 
-		//check network status
-		if (APPonline && (lastAPPresponseTime + (int)networkTimeout < time(NULL)))
-		{
-			APPonline = false;
-			LogInfo("APP offline\n");
-		}
-
 		//delay
-		requested_time.tv_nsec = behLoopDelay * 1000000;
-		nanosleep(&requested_time, &remaining);
+		usleep(behLoopDelay * 1000);
 	}
 }
 
 //report available scripts
-int ReportAvailableScripts()
+void RegisterAvailableScripts()
 {
 	//critical section
 	int s = pthread_mutex_lock(&luaMtx);
@@ -200,7 +153,7 @@ int ReportAvailableScripts()
 		ERRORPRINT("BT: lua mutex lock %i\n", s);
 	}
 
-	int messageCount = AvailableScripts();
+	AvailableScripts();
 
 	s = pthread_mutex_unlock(&luaMtx);
 	if (s != 0)
@@ -208,7 +161,6 @@ int ReportAvailableScripts()
 		ERRORPRINT("BT: lua mutex unlock %i\n", s);
 	}
 	//end critical section
-	return messageCount;
 }
 
 //BT call-back result codes
@@ -251,22 +203,12 @@ int actionReply(lua_State *L, ActionResult_enum result)
 
 int ChangeOption(lua_State *L, const char *name, int value)
 {
-	psMessage_t msg;
-	psInitPublish(msg, SET_OPTION);
-	strncpy(msg.optionPayload.name, name, PS_NAME_LENGTH);
-	msg.optionPayload.value = value;
-	RouteMessage(msg);
-	LogInfo("lua: ChangeOption(%s, %i)\n", name, value);
+	ps_registry_set_bool("options", name, value);
 	return success(L);
 }
 
 int ChangeSetting(lua_State *L, const char *name, float value)
 {
-	psMessage_t msg;
-	psInitPublish(msg, NEW_SETTING);
-	strncpy(msg.settingPayload.name, name, PS_NAME_LENGTH);
-	msg.settingPayload.value = value;
-	RouteMessage(msg);
-	LogInfo("lua: ChangeSetting(%s, %f)\n", name, value);
+	ps_registry_set_real("settings", name, value);
 	return success(L);
 }

@@ -2,4 +2,4 @@
 # script to copy BUG files to BBB
 
 # LUA scripts
-scp -r ./Bug_Edison/lua root@hexapod.local:/home/root
+scp -r ./Edison/lua root@192.168.1.8:/home/root

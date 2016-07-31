@@ -12,7 +12,7 @@ Test90 = BT:new({
 		})
 });
 
-ActivityList[NextActivity] =  'Test90'
+ActivityList[NextActivity] =  'TurnLeft90'
 NextActivity = NextActivity + 1
 
 TestNorth = BT:new({
@@ -27,11 +27,11 @@ TestNorth = BT:new({
 		})
 });
 
-ActivityList[NextActivity] =  'TestNorth'
+ActivityList[NextActivity] =  'TurnNorth'
 NextActivity = NextActivity + 1
 
-TestMove10 = BT:new({
-  name = 'Test.Move.10',
+Forward10 = BT:new({
+  name = 'Test.Forward.10',
   tree = BT.Sequence:new({
 	name = 'Test.Seq',
 		nodes = {
@@ -42,5 +42,20 @@ TestMove10 = BT:new({
 		})
 });
 
-ActivityList[NextActivity] =  'TestMove10'
+ActivityList[NextActivity] =  'Forward10'
+NextActivity = NextActivity + 1
+
+Backward10 = BT:new({
+  name = 'Test.Backward.10',
+  tree = BT.Sequence:new({
+	name = 'Test.Seq',
+		nodes = {
+			'DisableFrontCloseStop',
+			'DisableRearCloseStop',
+			'MoveBackward10',
+			}
+		})
+});
+
+ActivityList[NextActivity] =  'Backward10'
 NextActivity = NextActivity + 1

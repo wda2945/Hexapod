@@ -1,16 +1,15 @@
 /* 
- * File: NotificationsConditionsList.h
- * Author: martin
- *
- * Created on April 9, 2015, 8:46 PM
- */
-
+*File: NotificationsConditionsErrors h
+*Author: martin
+*
+*Created on April 9 2015 8:46 PM
+*/
 
 //Conditions - errors
 
-CONDITION( SERVOS_ERRORS, "Servos Errors")
-CONDITION( AGENT_ERRORS, "UDP Agent Errors")
-CONDITION( OVM_INIT_ERROR, "OVM Init Error")
-CONDITION( I2C_BUS_ERROR, "I2C Bus Error")
-CONDITION( ANALOG_ERROR, "Analog Error")
-CONDITION( INIT_ERROR, "Init Errors")
+CONDITION_MACRO(SERVOS_ERRORS, "Servos.Errors")
+CONDITION_MACRO(AGENT_ERRORS, "UDP.Agent.Errors")
+CONDITION_MACRO(OVM_INIT_ERROR, "OVM.Init.Error")
+CONDITION_MACRO(I2C_BUS_ERROR, "I2C.Bus.Error")
+CONDITION_MACRO(ANALOG_ERROR, "Analog.Error")
+CONDITION_MACRO(INIT_ERROR, "Init.Errors")

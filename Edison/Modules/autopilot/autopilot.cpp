@@ -67,15 +67,16 @@ typedef enum {
 	PILOT_STATE_INACTIVE		//motors disabled
 } PilotState_enum;
 
-static const char *pilotStateNames[] = {	"IDLE",			//ready for a command
+static const char *pilotStateNames[] = {
+		"IDLE",					//ready for a command
 		"FORWARD_SENT",			//short distance move using encoders only
 		"BACKWARD_SENT",		//ditto
-		"ORIENT_SENT",		//monitoring motion using compass
+		"ORIENT_SENT",			//monitoring motion using compass
 		"MOVE_SENT",			//monitoring move using pose msg
 		"FORWARD",				//short distance move using encoders only
 		"BACKWARD",				//ditto
-		"ORIENT",			//monitoring motion using compass
-		"MOVE",				//monitoring move using pose msg
+		"ORIENT",				//monitoring motion using compass
+		"MOVE",					//monitoring move using pose msg
 		"DONE",					//move complete
 		"FAILED",				//move failed
 		"ABORT",
@@ -90,16 +91,7 @@ bool motorsInhibit 	= true;
 bool motorsBusy 	= false;
 bool motorsErrors 	= false;
 
-NotificationMask_t currentConditions;
-
-NotificationMask_t frontCloseMask = NOTIFICATION_MASK(FRONT_LEFT_PROXIMITY)
-		| NOTIFICATION_MASK(FRONT_CENTER_PROXIMITY)
-		| NOTIFICATION_MASK(FRONT_RIGHT_PROXIMITY);
-NotificationMask_t rearCloseMask = NOTIFICATION_MASK(REAR_LEFT_PROXIMITY)
-		| NOTIFICATION_MASK(REAR_CENTER_PROXIMITY)
-		| NOTIFICATION_MASK(REAR_RIGHT_PROXIMITY);
-NotificationMask_t frontFarMask = NOTIFICATION_MASK(FRONT_LEFT_FAR_PROXIMITY)
-		| NOTIFICATION_MASK(FRONT_RIGHT_FAR_PROXIMITY);
+bool reviewProgress	= false;
 
 time_t MOVE_XXX_SENT_time = 0;
 time_t MOVE_XXX_time = 0;
@@ -110,6 +102,12 @@ int motorSpeed;
 
 #define CM_PER_DEGREE (60.0 * 5280.0 * 12.0 * 2.54)
 #define RADIANSTODEGREES(r) (r * 180.0 / M_PI)
+
+void HandleEvent(void *arg, ps_event_id_t event);
+
+void ProcessOdometryMessage(const void *_msg, int len);
+void ProcessPoseMessage(const void *_msg, int len);
+void ProcessTickMessage(const void *_msg, int len);
 
 int AutopilotInit() {
 
@@ -123,6 +121,16 @@ int AutopilotInit() {
 		ERRORPRINT("Pilot Thread fail %i", s);
 		return -1;
 	}
+
+	ps_subscribe(TICK_1S_TOPIC, ProcessTickMessage);
+	ps_subscribe(NAV_TOPIC, ProcessPoseMessage);
+	ps_subscribe(ODO_TOPIC, ProcessOdometryMessage);
+
+	ps_add_event_observer(BATTERY_SHUTDOWN_EVENT, HandleEvent, nullptr);
+	ps_add_event_observer(PROXIMITY_EVENT, HandleEvent, nullptr);
+	ps_add_event_observer(SERVOS_STARTED_EVENT, HandleEvent, nullptr);
+	ps_add_event_observer(SERVOS_STOPPED_EVENT, HandleEvent, nullptr);
+	ps_add_event_observer(MOTOR_INHIBIT_EVENT, HandleEvent, nullptr);
 
 	return 0;
 }
@@ -463,14 +471,16 @@ ActionResult_enum pilotSetRandomGoal(int _rangeCM)
 }
 
 //incoming messages - pick which ones to use
-void AutopilotProcessMessage(psMessage_t *msg) {
-	switch (msg->header.messageType) {
+void AutopilotProcessMessage(const void *_msg, int len)
+{
+
+	psMessage_t *msg = (psMessage_t *) _msg;
+
+	switch (msg->messageType) {
 
 	case TICK_1S:
 	case POSE:
 	case ODOMETRY:
-	case NOTIFY:
-	case CONDITIONS:
 		break;
 	default:
 		return;		//ignore other messages
@@ -479,33 +489,17 @@ void AutopilotProcessMessage(psMessage_t *msg) {
 	CopyMessageToQ(&autopilotQueue, msg);
 }
 
-void SetVarFromCondition(psMessage_t *msg, Condition_enum e, bool *var)
-{
-	NotificationMask_t mask = NOTIFICATION_MASK(e);
-
-	if (mask & msg->eventMaskPayload.valid)
-	{
-		*var = (mask & msg->eventMaskPayload.value);
-	}
-}
-
 //thread to send updates to the motor processor
 void *AutopilotThread(void *arg) {
-	bool reviewProgress;
 
 	int priorPilotState;	//used to cancel notifications
 
-	PowerState_enum powerState = POWER_STATE_UNKNOWN;
+//	PowerState_enum powerState = POWER_STATE_UNKNOWN;
 
 	DEBUGPRINT("Pilot thread ready\n");
 
 	//loop
 	while (1) {
-		psMessage_t *rxMessage = GetNextMessage(&autopilotQueue);
-
-//		DEBUGPRINT("Pilot Msg: %s\n", psLongMsgNames[rxMessage->header.messageType]);
-
-		reviewProgress = false;
 
 		//critical section
 		int s = pthread_mutex_lock(&pilotStateMtx);
@@ -515,197 +509,6 @@ void *AutopilotThread(void *arg) {
 		}
 
 		priorPilotState = pilotState;	//track state for Conditions
-
-		//process message
-		switch (rxMessage->header.messageType) {
-		case TICK_1S:
-			powerState = (PowerState_enum) rxMessage->tickPayload.systemPowerState;
-			if (powerState < POWER_ACTIVE)
-			{
-				//shutting down
-				CancelPilotOperation(PILOT_STATE_INACTIVE);
-				LogInfo("Pilot Shutdown\n");			}
-			else
-			{
-				//make pilot available
-				if (moveOK && !motorsInhibit && (pilotState == PILOT_STATE_INACTIVE) && MOTonline && MCPonline)
-				{
-					pilotState = PILOT_STATE_IDLE;
-					LogInfo("Pilot Available\n");
-				}
-			}
-			reviewProgress = true;
-
-			switch (pilotState)
-			{
-			case PILOT_STATE_FORWARD_SENT:
-			case PILOT_STATE_BACKWARD_SENT:
-			case PILOT_STATE_ORIENT_SENT:
-			case PILOT_STATE_MOVE_SENT:
-
-				MOVE_XXX_time = 0;
-				if (MOVE_XXX_SENT_time == 0)
-					MOVE_XXX_SENT_time = time(NULL);
-				else
-				{
-					if (MOVE_XXX_SENT_time + motorsStartTimeout < time(NULL))
-					{
-						CancelPilotOperation(PILOT_STATE_FAILED);
-						lastLuaCallReason = "StartTO";
-						MOVE_XXX_SENT_time = 0;
-						LogWarning("Motors Start TO\n");
-					}
-				}
-				break;
-			case PILOT_STATE_FORWARD:
-			case PILOT_STATE_BACKWARD:
-			case PILOT_STATE_ORIENT:
-			case PILOT_STATE_MOVE:
-
-				MOVE_XXX_SENT_time = 0;
-				if (MOVE_XXX_time == 0)
-					MOVE_XXX_time = time(NULL);
-				else
-				{
-					if (MOVE_XXX_time + motorsRunTimeout < time(NULL))
-					{
-						CancelPilotOperation(PILOT_STATE_FAILED);
-						lastLuaCallReason = "RunTO";
-						MOVE_XXX_time = 0;
-						LogWarning("Motors Run TO\n");
-					}
-				}
-				break;
-			default:
-				MOVE_XXX_time = 0;
-				MOVE_XXX_SENT_time = 0;
-				break;
-			}
-			break;
-		case POSE:
-			pose = rxMessage->posePayload;
-			gettimeofday(&latestPoseTime, NULL);
-			reviewProgress = true;
-			break;
-		case ODOMETRY:
-			odometry = rxMessage->odometryPayload;
-			gettimeofday(&latestOdoTime, NULL);
-			reviewProgress = true;
-			break;
-		case NOTIFY:
-		{
-			Event_enum event = (Event_enum) rxMessage->intPayload.value;
-			switch(event)
-			{
-			case BATTERY_SHUTDOWN_EVENT:
-				CancelPilotOperation(PILOT_STATE_FAILED);
-				lastLuaCallReason = "Battery";
-				LogInfo("Pilot Shutdown Stop\n");
-				break;
-			case BATTERY_CRITICAL_EVENT:
-				if (pilotFlags & ENABLE_SYSTEM_ABORT) {
-					CancelPilotOperation(PILOT_STATE_FAILED);
-					lastLuaCallReason = "Battery";
-					LogInfo("Pilot Critical Stop\n");
-				}
-				break;
-				break;
-			default:
-				break;
-			}
-		}
-			break;
-
-		case CONDITIONS:
-		{
-			currentConditions |= rxMessage->eventMaskPayload.value & rxMessage->eventMaskPayload.valid;
-			currentConditions &= ~(~rxMessage->eventMaskPayload.value & rxMessage->eventMaskPayload.valid);
-
-			if ((currentConditions & frontCloseMask) && (pilotFlags & ENABLE_FRONT_CLOSE_ABORT)){
-				if (CancelPilotOperation(PILOT_STATE_FAILED))
-				{
-					lastLuaCallReason = "ProxFront";
-					LogRoutine("Pilot Front Prox Stop\n");
-				}
-			}
-			if ((currentConditions & rearCloseMask) && (pilotFlags & ENABLE_REAR_CLOSE_ABORT)) {
-				if (CancelPilotOperation(PILOT_STATE_FAILED))
-				{
-					lastLuaCallReason = "ProxRear";
-					LogRoutine("Pilot Rear Prox Stop\n");
-				}
-			}
-			if ((currentConditions & frontFarMask) && (pilotFlags & ENABLE_FRONT_FAR_ABORT)){
-				if (CancelPilotOperation(PILOT_STATE_FAILED))
-				{
-					lastLuaCallReason = "ProxFar";
-					LogRoutine("Pilot Far Prox Stop");
-				}
-			}
-
-			motorsInhibit = currentConditions & NOTIFICATION_MASK(SERVOS_OFFLINE);
-			motorsBusy = currentConditions & NOTIFICATION_MASK(SERVOS_WALKING);
-			motorsErrors = currentConditions & NOTIFICATION_MASK(SERVOS_ERRORS);
-
-			if (motorsInhibit)
-			{
-				if (CancelPilotOperation(PILOT_STATE_INACTIVE))
-				{
-					lastLuaCallReason = "MotInhibit";
-					LogInfo("Pilot Motor Inhibit Stop");
-				}
-			}
-			if (motorsBusy)
-			{
-				switch (pilotState)
-				{
-				case PILOT_STATE_FORWARD_SENT:
-					pilotState = PILOT_STATE_FORWARD;
-					 LogRoutine("Pilot Move Fwd Started\n");
-					break;
-				case PILOT_STATE_BACKWARD_SENT:
-					pilotState = PILOT_STATE_BACKWARD;
-					LogRoutine("Pilot Move Back Started\n");
-					break;
-				case PILOT_STATE_ORIENT_SENT:
-					pilotState = PILOT_STATE_ORIENT;
-					LogRoutine("Pilot Orient Started\n");
-					break;
-				case PILOT_STATE_MOVE_SENT:
-					pilotState = PILOT_STATE_MOVE;
-					LogRoutine("Pilot Move Started\n");
-					break;
-				default:
-					break;
-				}
-			}
-			else
-			{
-				switch (pilotState)
-				{
-				case PILOT_STATE_FORWARD:
-				case PILOT_STATE_BACKWARD:
-					pilotState = PILOT_STATE_DONE;
-					LogRoutine("Pilot Move Done\n");
-					break;
-				case PILOT_STATE_ORIENT:
-					{
-						pilotState = PILOT_STATE_DONE;
-						LogRoutine("D/R Orient Done\n");
-					}
-					break;
-				case PILOT_STATE_MOVE:
-					reviewProgress = true;
-				default:
-					break;
-				}
-			}
-
-			break;
-		}
-		default:
-			break;
-		}
 
 		if (reviewProgress & ~motorsBusy)
 		{
@@ -737,19 +540,19 @@ void *AutopilotThread(void *arg) {
 			case PILOT_STATE_BACKWARD:
 			case PILOT_STATE_ORIENT:
 			case PILOT_STATE_MOVE:
-				CancelCondition(PILOT_ENGAGED);
+				ps_cancel_condition(PILOT_ENGAGED);
 				break;
 			case PILOT_STATE_DONE:
-				CancelCondition(PILOT_IDLE);
+				ps_cancel_condition(PILOT_IDLE);
 				break;
 			case PILOT_STATE_FAILED:
-				CancelCondition(PILOT_FAILED);
+				ps_cancel_condition(PILOT_FAILED);
 				break;
 			}
 			switch (pilotState) {
 			case PILOT_STATE_IDLE:
 			case PILOT_STATE_INACTIVE:
-				CancelCondition(PILOT_ENGAGED);
+				ps_cancel_condition(PILOT_ENGAGED);
 				break;
 			case PILOT_STATE_FORWARD_SENT:
 			case PILOT_STATE_BACKWARD_SENT:
@@ -759,14 +562,14 @@ void *AutopilotThread(void *arg) {
 			case PILOT_STATE_BACKWARD:
 			case PILOT_STATE_ORIENT:
 			case PILOT_STATE_MOVE:
-				SetCondition(PILOT_ENGAGED);
+				ps_set_condition(PILOT_ENGAGED);
 				break;
 			case PILOT_STATE_DONE:
-				SetCondition(PILOT_IDLE);
+				ps_set_condition(PILOT_IDLE);
 				break;
 			case PILOT_STATE_FAILED:
 			case PILOT_STATE_ABORT:
-				SetCondition(PILOT_FAILED);
+				ps_set_condition(PILOT_FAILED);
 				break;
 			}
 		}
@@ -778,8 +581,205 @@ void *AutopilotThread(void *arg) {
 		}
 		//end critical section
 
-		DoneWithMessage(rxMessage);
+		usleep(100000);
 	}
+}
+
+void HandleEvent(void *arg, ps_event_id_t event)
+{
+	//critical section
+	int s = pthread_mutex_lock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+	}
+
+	switch(event)
+	{
+	case BATTERY_SHUTDOWN_EVENT:
+		CancelPilotOperation(PILOT_STATE_INACTIVE);
+		break;
+	case PROXIMITY_EVENT:
+		CancelPilotOperation(PILOT_STATE_ABORT);
+		break;
+	case SERVOS_STARTED_EVENT:
+		switch (pilotState)
+		{
+		case PILOT_STATE_FORWARD_SENT:
+			pilotState = PILOT_STATE_FORWARD;
+			 LogRoutine("Pilot Move Fwd Started\n");
+			break;
+		case PILOT_STATE_BACKWARD_SENT:
+			pilotState = PILOT_STATE_BACKWARD;
+			LogRoutine("Pilot Move Back Started\n");
+			break;
+		case PILOT_STATE_ORIENT_SENT:
+			pilotState = PILOT_STATE_ORIENT;
+			LogRoutine("Pilot Orient Started\n");
+			break;
+		case PILOT_STATE_MOVE_SENT:
+			pilotState = PILOT_STATE_MOVE;
+			LogRoutine("Pilot Move Started\n");
+			break;
+		default:
+			break;
+		}
+		break;
+	case SERVOS_STOPPED_EVENT:
+		switch (pilotState)
+		{
+		case PILOT_STATE_FORWARD:
+		case PILOT_STATE_BACKWARD:
+			pilotState = PILOT_STATE_DONE;
+			LogRoutine("Pilot Move Done\n");
+			break;
+		case PILOT_STATE_ORIENT:
+			{
+				pilotState = PILOT_STATE_DONE;
+				LogRoutine("D/R Orient Done\n");
+			}
+			break;
+		case PILOT_STATE_MOVE:
+			reviewProgress = true;
+		default:
+			break;
+		}
+		break;
+	case MOTOR_INHIBIT_EVENT:
+		if (CancelPilotOperation(PILOT_STATE_INACTIVE))
+		{
+			lastLuaCallReason = "MotInhibit";
+			LogInfo("Pilot Motor Inhibit Stop");
+		}
+		break;
+		break;
+	default:
+		break;
+	}
+
+	s = pthread_mutex_unlock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+	}
+	//end critical section
+}
+
+void ProcessOdometryMessage(const void *_msg, int len)
+{
+	psMessage_t *rxMessage = (psMessage_t *) _msg;
+
+	//critical section
+	int s = pthread_mutex_lock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+	}
+
+	odometry = rxMessage->odometryPayload;
+	gettimeofday(&latestOdoTime, NULL);
+	reviewProgress = true;
+
+	s = pthread_mutex_unlock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+	}
+	//end critical section
+}
+
+void ProcessPoseMessage(const void *_msg, int len)
+{
+	psMessage_t *rxMessage = (psMessage_t *) _msg;
+
+	//critical section
+	int s = pthread_mutex_lock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+	}
+
+	pose = rxMessage->posePayload;
+	gettimeofday(&latestPoseTime, NULL);
+	reviewProgress = true;
+
+	s = pthread_mutex_unlock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+	}
+	//end critical section
+}
+
+void ProcessTickMessage(const void *_msg, int len)
+{
+	//critical section
+	int s = pthread_mutex_lock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+	}
+
+	//make pilot available
+	if ((pilotState == PILOT_STATE_INACTIVE) && moveOK && !motorsInhibit)
+	{
+		pilotState = PILOT_STATE_IDLE;
+		LogInfo("Pilot Available\n");
+	}
+	reviewProgress = true;
+
+	switch (pilotState)
+	{
+	case PILOT_STATE_FORWARD_SENT:
+	case PILOT_STATE_BACKWARD_SENT:
+	case PILOT_STATE_ORIENT_SENT:
+	case PILOT_STATE_MOVE_SENT:
+
+		MOVE_XXX_time = 0;
+		if (MOVE_XXX_SENT_time == 0)
+			MOVE_XXX_SENT_time = time(NULL);
+		else
+		{
+			if (MOVE_XXX_SENT_time + motorsStartTimeout < time(NULL))
+			{
+				CancelPilotOperation(PILOT_STATE_FAILED);
+				lastLuaCallReason = "StartTO";
+				MOVE_XXX_SENT_time = 0;
+				LogWarning("Motors Start TO\n");
+			}
+		}
+		break;
+	case PILOT_STATE_FORWARD:
+	case PILOT_STATE_BACKWARD:
+	case PILOT_STATE_ORIENT:
+	case PILOT_STATE_MOVE:
+
+		MOVE_XXX_SENT_time = 0;
+		if (MOVE_XXX_time == 0)
+			MOVE_XXX_time = time(NULL);
+		else
+		{
+			if (MOVE_XXX_time + motorsRunTimeout < time(NULL))
+			{
+				CancelPilotOperation(PILOT_STATE_FAILED);
+				lastLuaCallReason = "RunTO";
+				MOVE_XXX_time = 0;
+				LogWarning("Motors Run TO\n");
+			}
+		}
+		break;
+	default:
+		MOVE_XXX_time = 0;
+		MOVE_XXX_SENT_time = 0;
+		break;
+	}
+
+	s = pthread_mutex_unlock(&pilotStateMtx);
+	if (s != 0)
+	{
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+	}
+	//end critical section
 }
 
 bool VerifyCompass()

@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include "hexapod.h"
+//#include "hexapod.h"
 #include "brokerq.h"
 
 BrokerQueueEntry_t *freelist = NULL;					//common free list
@@ -55,7 +55,7 @@ int CopyMessageToQ(BrokerQueue_t *q, psMessage_t *msg)
 void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 {
 
-	int QOS = psQOS[e->msg.header.messageType];
+	int QOS = psQOS[e->msg.messageType];
 
 	e->next = NULL;
 

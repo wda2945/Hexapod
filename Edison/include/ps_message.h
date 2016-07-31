@@ -13,14 +13,12 @@
 #include "messages.h"
 
 //convenience macro to initialize the message struct
-#define psInitPublish(msg, msgType) {\
-    msg.header.messageType = msgType;\
-    msg.header.messageTopic = psDefaultTopics[msgType];}
+#define psInitPublish(msg, msgType) { msg.messageType = msgType;}
 
-#define psMessageLength(type) (psMessageFormatLengths[psMsgFormats[type]] + sizeof(psMessageHeader_t))
+#define psMessageLength(type) (psMessageFormatLengths[psMsgFormats[type]] + sizeof(ps_message_id_t))
 
 //send a message to the broker
-#define NewBrokerMessage(msg) ps_publish(msg.header.messageTopic, &msg, psMessageLength(msg.header.messageType))
-#define RouteMessage(msg) ps_publish(msg.header.messageTopic, &msg, psMessageLength(msg.header.messageType))
+#define NewBrokerMessage(msg) ps_publish(psDefaultTopics[msg.messageType], &msg, psMessageLength(msg.messageType))
+#define RouteMessage(msg) ps_publish(psDefaultTopics[msg.messageType], &msg, psMessageLength(msg.messageType))
 
 #endif /* ps_types_h */

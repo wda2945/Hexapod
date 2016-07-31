@@ -1,5 +1,4 @@
 
-
 BT.Priority:new({
 	name = 'isBatteryOKish',		-- battery not critical; OK or low
 	nodes = {
@@ -9,50 +8,11 @@ BT.Priority:new({
 		}
 });
 
-Home = BT:new({
-	tree = BT.Sequence:new({
-		name = 'Go.To.Home.Position',
-		nodes = {
-			'isBatteryOKish',
-			'WaitForFix',
-			'isPilotReady',
-			'ComputeHomePosition',
-			'DriveAndAvoidObstacle'
-		}
-	})
-});
-
-ActivityList[NextActivity] =  'Home'
-NextActivity = NextActivity + 1
-
-Explore = BT:new({
-	tree = BT.RepeatWhileSuccess:new({
-		name = 'Random.Explore',
-		nodes = {
-			BT.Priority:new({
-				name = 'BatteryOKalert',
-				nodes = {
-					'isBatteryOK',
-					'BatteryFailAlert'
-					}
-			}),
-			'WaitForFix',
-			'isPilotReady',
-			'ComputeRandomExplorePosition',
-			'DriveAndAvoidObstacle',
-			'Wait60'
-		}
-	})
-});
-
-ActivityList[NextActivity] =  'Explore'
-NextActivity = NextActivity + 1
-
 ReloadAllScripts = BT:new({
   tree = 'ReloadScripts'
 })
 
-ActivityList[NextActivity] =  'ReloadAllScripts'
+ActivityList[NextActivity] =  'ReloadScripts'
 NextActivity = NextActivity + 1
 
 PowerOff = BT:new({
@@ -63,8 +23,8 @@ ActivityList[NextActivity] =  'PowerOff'
 NextActivity = NextActivity + 1
 
 Sleep = BT:new({
-  tree = 'SystemSleep'
+  tree = 'SystemSetResting'
 })
 
-ActivityList[NextActivity] =  'Sleep'
+ActivityList[NextActivity] =  'Rest'
 NextActivity = NextActivity + 1

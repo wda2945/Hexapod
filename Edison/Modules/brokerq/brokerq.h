@@ -10,8 +10,8 @@
 #ifndef BROKERQ_H_
 #define BROKERQ_H_
 
-#include <stdio.h>
 #include "pthread.h"
+#include "hexapod.h"
 
 //queue item struct
 //just a message and a next pointer

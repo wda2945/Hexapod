@@ -54,12 +54,41 @@ FILE *navDebugFile;
 //main navigator thread
 void *NavigatorThread(void *arg);
 
+void NavigatorProcessMessage(const void *_msg, int len);
+ps_registry_callback_t ProcessImuUpdate;
+
 BrokerQueue_t navigatorQueue = BROKER_Q_INITIALIZER;
+
+//incoming data
+bool new_IMU_data {false};
+bool IMUGood {false};
+int IMU_raw_heading;
+int IMU_raw_pitch;
+int IMU_raw_roll;
+time_t latestIMUReportTime = 0;
+
+psOdometryPayload_t ODO_report;
+bool new_ODO_data {false};
+time_t latestOdoReportTime = 0;
+
+//latest pose report
+Position_struct position;
+Orientation_struct orientation;
 
 int NavigatorInit()
 {
 	navDebugFile = fopen_logfile("navigator");
 	DEBUGPRINT("Navigator Logfile opened\n");
+
+	ps_registry_add_new("pose", "latitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("pose", "longitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("pose", "heading", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+
+	ps_registry_set_observer("IMU", "heading", ProcessImuUpdate, &IMU_raw_heading);
+	ps_registry_set_observer("IMU", "pitch", ProcessImuUpdate, &IMU_raw_pitch);
+	ps_registry_set_observer("IMU", "roll", ProcessImuUpdate, &IMU_raw_roll);
+
+	ps_subscribe(ODO_TOPIC, NavigatorProcessMessage);
 
 	//create navigator thread
 	pthread_t thread;
@@ -73,35 +102,30 @@ int NavigatorInit()
 	return 0;
 }
 
-void NavigatorProcessMessage(psMessage_t *msg)
+void ProcessImuUpdate(const char *domain, const char *name, const void *arg)
 {
-	CopyMessageToQ(&navigatorQueue, msg);
+	ps_registry_get_int(domain, name, (int*) arg);
+	latestIMUReportTime = time(NULL);
+	IMUGood = new_IMU_data = true;
+}
+
+void NavigatorProcessMessage(const void *_msg, int len)
+{
+	psMessage_t *msg = (psMessage_t *) _msg;
+
+	switch(msg->messageType)
+	{
+	case ODOMETRY:
+		ODO_report = msg->odometryPayload;
+		new_ODO_data = true;
+		break;
+	default:
+		break;
+	}
 }
 
 void *NavigatorThread(void *arg)
 {
-	psMessage_t *msg;
-
-	//Robot pose
-	float roll = 0;
-	float pitch = 0;
-
-	//incoming data
-	ps3FloatPayload_t IMU_report;
-	psOdometryPayload_t ODO_report;
-
-	time_t latestIMUReportTime = 0;
-	time_t latestReportTime = 0;
-	time_t latestAppReportTime = 0;
-
-
-	//latest pose report
-	psMessage_t poseMsg;
-	psPosePayload_t lastPoseMsg;
-
-	bool IMUGood;
-	bool reportRequired;
-
 	//set up filters
 	////////////////////////////////////////////////////////////////////////
 	//heading filter - 2 dimensions system (h, dh), 1 dimension measurement
@@ -133,33 +157,13 @@ void *NavigatorThread(void *arg)
 	scale_matrix(HeadingFilter.estimate_covariance, 100000.0);
 #define GET_HEADING NORMALIZE_HEADING((int) HeadingFilter.state_estimate.data[0][0])	//always 0 to 359
 
-//	PRINT_MATRIX(HeadingFilter.state_transition);
-//	PRINT_MATRIX(HeadingFilter.process_noise_covariance);
-//	PRINT_MATRIX(HeadingFilter.observation_model);
-//	PRINT_MATRIX(HeadingFilter.observation);
-//	PRINT_MATRIX(HeadingFilter.observation_noise_covariance);
-//	PRINT_MATRIX(HeadingFilter.state_estimate);
-//	PRINT_MATRIX(HeadingFilter.estimate_covariance);
-
 	while (1) {
 
-		msg = GetNextMessage(&navigatorQueue);
-
-		DEBUGPRINT("Navigator RX: %s\n", psLongMsgNames[msg->header.messageType]);
-
-		reportRequired = false;
-
-		switch (msg->header.messageType)
+		if (new_IMU_data)
 		{
-		case IMU_REPORT:
-		{
-			latestIMUReportTime = time(NULL);
-			IMU_report = msg->threeFloatPayload;
-			IMUGood = true;
-			//update heading belief
-			roll = IMU_report.roll;
-			pitch = IMU_report.pitch;
-			SET_HEADING_OBSERVATION(IMU_report.heading);
+			new_IMU_data = false;
+
+			SET_HEADING_OBSERVATION(IMU_raw_heading);
 			SET_HEADING_OBSERVATION_NOISE(5.0)
 			SET_HEADING_CHANGE(0.0);
 			predict(HeadingFilter);
@@ -167,11 +171,10 @@ void *NavigatorThread(void *arg)
 
 			DEBUGPRINT("Filtered heading: %i\n", GET_HEADING);
 		}
-		DoneWithMessage(msg);
-		break;
-		case ODOMETRY:
+
+		if (new_ODO_data)
 		{
-			ODO_report = msg->odometryPayload;
+			new_ODO_data = false;
 
 			//update heading belief
 			float veerAngle = ODO_report.zRotation;
@@ -186,18 +189,12 @@ void *NavigatorThread(void *arg)
 			float hRadians = DEGREESTORADIANS(GET_HEADING);
 
 			//update location belief
-			poseMsg.posePayload.position.latitude += (ODO_report.xMovement * cosf(hRadians));
-			poseMsg.posePayload.position.longitude += (ODO_report.yMovement * sinf(hRadians));
+			position.latitude += (ODO_report.xMovement * cosf(hRadians));
+			position.longitude += (ODO_report.yMovement * sinf(hRadians));
 
 			DEBUGPRINT("ODO location: %f, %f\n",
-					poseMsg.posePayload.position.latitude,
-					poseMsg.posePayload.position.longitude);
-		}
-		DoneWithMessage(msg);
-		break;
-		default:
-			DoneWithMessage(msg);
-			break;
+					position.latitude,
+					position.longitude);
 		}
 
 		if (time(NULL) - latestIMUReportTime > RAW_DATA_TIMEOUT)
@@ -205,45 +202,14 @@ void *NavigatorThread(void *arg)
 			IMUGood = false;
 		}
 
-
-				//whether to report
-#define max(a,b) (a>b?a:b)
-
-				if ((abs(lastPoseMsg.position.latitude - poseMsg.posePayload.position.latitude) > REPORT_LOCATION_CHANGE) ||
-						(abs(lastPoseMsg.position.longitude - poseMsg.posePayload.position.longitude) > REPORT_LOCATION_CHANGE) ||
-						(abs(NORMALIZE_HEADING(lastPoseMsg.orientation.heading - poseMsg.posePayload.orientation.heading)) > REPORT_BEARING_CHANGE) ||
-						(latestReportTime + REPORT_MAX_INTERVAL > time(NULL)))
-				{
-					reportRequired = true;
-				}
-
-
-		if (reportRequired)
-		{
-			psInitPublish(poseMsg, POSE);
-
-			poseMsg.posePayload.orientation.roll = roll;
-			poseMsg.posePayload.orientation.pitch = pitch;
-			poseMsg.posePayload.orientation.heading = GET_HEADING;
-			poseMsg.posePayload.orientationValid = IMUGood;
-			poseMsg.posePayload.positionValid = true;
-
-			lastPoseMsg = poseMsg.posePayload;
-			RouteMessage(poseMsg);
-			latestReportTime = time(NULL);
+		ps_registry_set_real("pose", "latitude", position.latitude);
+		ps_registry_set_real("pose", "longitude", position.longitude);
+		ps_registry_set_int("pose", "heading", GET_HEADING);
 
 			DEBUGPRINT("NAV; Pose Msg: N=%f, E=%f, H=%i\n",
-					poseMsg.posePayload.position.latitude,
-					poseMsg.posePayload.position.longitude,
-					lastPoseMsg.orientation.heading )
+					position.latitude, position.longitude,
+					orientation.heading )
 
-			if (latestAppReportTime + appReportInterval < time(NULL)){
-				//send another to the App
-				psInitPublish(poseMsg, POSEREP);
-				RouteMessage(poseMsg);
-				latestAppReportTime = time(NULL);
-			}
-		}
-
+		usleep(500000);
 	}
 }

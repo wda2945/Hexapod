@@ -18,7 +18,11 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
+
+#ifndef __USE_MISC
 #define __USE_MISC
+#endif
+
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
@@ -51,7 +55,7 @@ vector_int16_t LSM303_m; // magnetometer readings
 
 // vector functions
 typedef struct {
-	float x,y,z;
+	double x,y,z;
 } vector_float;
 
 static void vector_cross(const vector_float *a, const vector_float *b, vector_float *out);
@@ -84,7 +88,7 @@ void LSM303Calibrate()
 
 		if (LSM303_readMag() < 0)
 		{
-			printf("ReadMag fail\n");
+			printf("ReadMag fail");
 		}
 
 		if (LSM303_m.x > LSMmax.x) LSMmax.x = LSM303_m.x;
@@ -95,7 +99,7 @@ void LSM303Calibrate()
 		if (LSM303_m.y < LSMmin.y) LSMmin.y = LSM303_m.y;
 		if (LSM303_m.z < LSMmin.z) LSMmin.z = LSM303_m.z;
 
-		printf("max = {%i,%i,%i} min  = {%i,%i,%i}\n", LSMmax.x,LSMmax.y,LSMmax.z,LSMmin.x,LSMmin.y,LSMmin.z);
+		printf("max = {%i,%i,%i} min  = {%i,%i,%i}", LSMmax.x,LSMmax.y,LSMmax.z,LSMmin.x,LSMmin.y,LSMmin.z);
 	}
 }
 
@@ -139,6 +143,10 @@ int LSM303Init()
     // MLP = 0 (low power mode off); MD = 00 (continuous-conversion mode)
 	if (LSM303_writeReg(CTRL7, 0x00) < 0) return -1;
 
+	ps_registry_add_new("IMU", "heading", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+	ps_registry_add_new("IMU", "pitch", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+	ps_registry_add_new("IMU", "roll", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+
 	return 0;
 }
 
@@ -147,7 +155,7 @@ int LSM303_setAddress()
 	//set IMU I2C address
 	if (mraa_i2c_address(i2c_context, IMU_XM_I2C_ADDRESS) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("IMU_XM: mraa_i2c_address error\n");
+		ERRORPRINT("IMU_XM: mraa_i2c_address error");
 		return -1;
 	}
 	return 0;
@@ -159,7 +167,7 @@ int LSM303_writeReg(uint8_t reg, uint8_t value)
 	//write to port register
 	if (mraa_i2c_write_byte_data(i2c_context, value, reg)  != MRAA_SUCCESS)
 	{
-		ERRORPRINT("IMU_XM: mraa_i2c_write_byte_data(0x%02x, 0x%02x) error\n", reg, value);
+		ERRORPRINT("IMU_XM: mraa_i2c_write_byte_data(0x%02x, 0x%02x) error", reg, value);
 		return -1;
 	}
 	return 0;
@@ -172,7 +180,7 @@ int LSM303_readReg(uint8_t reg)
 	//read from port register
 	if (mraa_i2c_read_bytes_data(i2c_context, reg, &result, 1) < 0)
 	{
-		ERRORPRINT("IMU_XM: i2c_read_byte_data(0x%02x) - %s\n", reg, strerror(errno));
+		ERRORPRINT("IMU_XM: i2c_read_byte_data(0x%02x) - %s", reg, strerror(errno));
 		return -1;
 	}
 	return result;
@@ -208,7 +216,7 @@ int LSM303_readAcc(void)
   LSM303_a.y = (int16_t)(regData[3] << 8 | regData[2]);
   LSM303_a.z = (int16_t)(regData[5] << 8 | regData[4]);
 
-  DEBUGPRINT("Accel: %i, %i, %i\n", LSM303_a.x, LSM303_a.y, LSM303_a.z);
+  DEBUGPRINT("Accel: %i, %i, %i", LSM303_a.x, LSM303_a.y, LSM303_a.z);
 
 	return (readerror ? -1 : 0);
 }
@@ -240,7 +248,7 @@ int LSM303_readMag(void)
 	LSM303_m.y = (int16_t)(regData[3] << 8 | regData[2]);
 	LSM303_m.z = (int16_t)(regData[5] << 8 | regData[4]);
 
-	DEBUGPRINT("Mag: %i, %i, %i\n", LSM303_m.x, LSM303_m.y, LSM303_m.z);
+	DEBUGPRINT("Mag: %i, %i, %i", LSM303_m.x, LSM303_m.y, LSM303_m.z);
 
 	return (readerror ? -1 : 0);
 }
@@ -253,15 +261,11 @@ int LSM303Read(void)
 	if (LSM303_readAcc() < 0) return -1;
 	if (LSM303_readMag() < 0) return -1;
 
-	//send heading message
-	psInitPublish(msg, IMU_REPORT);
-	msg.threeFloatPayload.heading  	= LSM303_heading();
-	msg.threeFloatPayload.pitch  	= LSM303_pitch();
-	msg.threeFloatPayload.roll  	= LSM303_roll();
+	ps_registry_set_int("IMU", "heading", LSM303_heading());
+	ps_registry_set_int("IMU", "pitch", LSM303_pitch());
+	ps_registry_set_int("IMU", "roll", LSM303_roll());
 
-	NewBrokerMessage(msg);
-
-	DEBUGPRINT("Heading: %0.0f\n", msg.threeFloatPayload.heading);
+	DEBUGPRINT("Heading: %0.0f", msg.threeFloatPayload.heading);
 
 	return 0;
 }
@@ -291,15 +295,15 @@ and horizontal north is returned.
 float LSM303_heading()
 {
 	vector_float from = {1,0,0};			//+X axis forward
-	vector_float temp_m = {LSM303_m.x, LSM303_m.y, LSM303_m.z};
-	vector_float temp_a = {LSM303_a.x, LSM303_a.y, LSM303_a.z};
+	vector_float temp_m = {(double)LSM303_m.x, (double)LSM303_m.y, (double)LSM303_m.z};
+	vector_float temp_a = {(double)LSM303_a.x, (double)LSM303_a.y, (double)LSM303_a.z};
 
     // subtract offset (average of min and max) from magnetometer readings
     temp_m.x -= ((float)m_min.x + m_max.x) / 2;
     temp_m.y -= ((float)m_min.y + m_max.y) / 2;
     temp_m.z -= ((float)m_min.z + m_max.z) / 2;
 
-//	printf("Mag = {%f, %f, %f}\n", temp_m.x, temp_m.y, temp_m.z);
+//	printf("Mag = {%f, %f, %f}", temp_m.x, temp_m.y, temp_m.z);
 
     // compute E and N
     vector_float E;
@@ -315,7 +319,7 @@ float LSM303_heading()
     if (heading < 0) heading += 360;
     if (heading >= 360) heading -= 360;
 
-//    DEBUGPRINT("IMU Heading: %f\n", heading)
+//    DEBUGPRINT("IMU Heading: %f", heading)
 
     return heading;
 }

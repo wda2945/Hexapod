@@ -12,9 +12,28 @@
 #ifndef ps_config_h
 #define ps_config_h
 
+
+#include "ps_api/ps_types.h"
+#define SOURCE SRC_HEXAPOD
+#define SOURCE_NAME "Hexapod"
+
 //pubsub parameters
-#define PS_DEFAULT_MAX_PACKET 	256
-#define PS_MAX_TOPIC_LIST 		10
+#include "messages.h"
+#include "pubsub/pubsub_header.h"
+#include "transport/transport_header.h"
+#include "packet/packet_header.h"
+
+//pubsub parameters
+#define  PS_MAX_MESSAGE  (sizeof(psMessage_t))
+
+#define  PS_MAX_PACKET  (sizeof(psMessage_t) + sizeof(ps_pubsub_header_t)\
+                                + sizeof(ps_transport_header_t) + sizeof(ps_packet_header_t))
+#define PS_MAX_TOPIC_LIST 10
+
+//registry
+#define REGISTRY_DOMAIN_LENGTH        20
+#define REGISTRY_NAME_LENGTH          20
+#define REGISTRY_TEXT_LENGTH          40
 
 //system logging parameters
 #define PS_SOURCE_LENGTH 		5
@@ -35,4 +54,15 @@
 					print_debug_message(tmp);\
 					print_debug_message_to_file(stderr, tmp);}
         
+#ifdef __cplusplus
+
+//mutex primitives
+#include <mutex>
+
+#define DEFINE_MUTEX(M) std::mutex M;
+#define LOCK_MUTEX(M)	M.lock();
+#define UNLOCK_MUTEX(M)	M.unlock();
+
+#endif	// __cplusplus
+
 #endif /* ps_config_h */

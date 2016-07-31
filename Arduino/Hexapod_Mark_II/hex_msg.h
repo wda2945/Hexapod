@@ -13,6 +13,7 @@ typedef struct {
 			short int xSpeed;          		//forward/back mm/sec
 			short int ySpeed;          		//side-to-side mm/sec
 			short int zRotateSpeed;    		//turn degrees/sec
+			short int steps;				//0 for continuous
 		};
 		struct {                    		//Body move command
 			short int xBody, yBody, zBody;

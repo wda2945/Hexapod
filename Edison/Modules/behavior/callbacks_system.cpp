@@ -1,5 +1,5 @@
 /*
- * BT Callbacks.c
+ * callbacks_system.cpp
  *
  *  Created on: Aug 10, 2014
  *      Author: martin
@@ -42,7 +42,6 @@ typedef enum {
     SystemSetResting,
     SystemSetActive,
     ReloadScripts,
-    isAppOnline,
 	SYSTEM_ACTION_COUNT
 } SystemAction_enum;
 
@@ -53,8 +52,7 @@ static const char *systemActionList[] = {
 	    "SystemPoweroff",
 	    "SystemSetResting",
 	    "SystemSetActive",
-	    "ReloadScripts",
-	    "isAppOnline",
+	    "ReloadScripts"
 };
 
 int InitSystemCallbacks(lua_State *L)
@@ -106,12 +104,6 @@ static int SystemAction(lua_State *L)
 		psInitPublish(msg, RELOAD);
 		RouteMessage(msg);
 		return success(L);
-		break;
-	case isAppOnline:
-		if (APPonline)
-			return success(L);
-		else
-			return fail(L);
 		break;
 	default:
 		LogError("Sys code: %i\n", actionCode);

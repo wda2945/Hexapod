@@ -31,7 +31,6 @@ void *I2CThread(void *arg);
 //file context for I2C bus
 mraa_i2c_context i2c_context;
 
-
 void LSM303StartCalibrate()
 {
 	while (!(i2c_context = mraa_i2c_init(I2C_BUS)))
@@ -47,29 +46,24 @@ int I2CInit()
 {
 	pthread_t th;
 	i2cDebugFile = fopen_logfile("i2c");
-	DEBUGPRINT("I2C Logfile opened\n");
+	DEBUGPRINT("I2C Logfile opened");
 
 	i2c_context = mraa_i2c_init(I2C_BUS);
 	if (!i2c_context)
 	{
-		ERRORPRINT("I2C: open error: %s\n", strerror(errno));
-		SetCondition(I2C_BUS_ERROR);
+		ERRORPRINT("I2C: open error: %s", strerror(errno));
+		ps_set_condition(I2C_BUS_ERROR);
 		return -1;
 	}
 
 	int s = pthread_create(&th, NULL, I2CThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("I2CThread create error - %i\n", s);
+		ERRORPRINT("I2CThread create error - %i", s);
 		return -1;
 	}
 
 	return 0;
-}
-
-void I2CProcessMessage(psMessage_t *msg)
-{
-	//no messages used at present
 }
 
 #define BASE_INTERVAL	999			//mS	loop delay (minimum interval needed)
@@ -85,7 +79,7 @@ void *I2CThread(void *arg)
 
 	if (mraa_i2c_frequency(i2c_context, MRAA_I2C_STD) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("mraa_i2c_frequency() fail\n");
+		ERRORPRINT("mraa_i2c_frequency() fail");
 	}
 
 	LSM303Init();		//imu
@@ -96,7 +90,7 @@ void *I2CThread(void *arg)
 		//read ADC audio
 		if (PCF8591Read(ADC_AUDIO_CHAN) < 0)
 		{
-			ERRORPRINT("PCF8591Read() fail\n");
+			ERRORPRINT("PCF8591Read() fail");
 		}
 
 		//read IMU periodically
@@ -104,7 +98,7 @@ void *I2CThread(void *arg)
 		{
 			if (LSM303Read() < 0)
 			{
-				ERRORPRINT("LSM303Read() fail\n");
+				ERRORPRINT("LSM303Read() fail");
 				imuCount = FAIL_INTERVAL / BASE_INTERVAL;
 			}
 			else
@@ -118,7 +112,7 @@ void *I2CThread(void *arg)
 		{
 			if (PCF8591Read(ADC_BATTERY_CHAN) < 0)
 			{
-				ERRORPRINT("PCF8591Read() fail\n");
+				ERRORPRINT("PCF8591Read() fail");
 				battCount = FAIL_INTERVAL / BASE_INTERVAL;
 			}
 			else

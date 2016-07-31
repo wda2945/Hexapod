@@ -38,7 +38,9 @@ int lastChannel = -1;
 //initialize ADC
 int PCF8591Init()
 {
-	//nothing
+	ps_registry_add_new("power", "volts", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("power", "status", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+
 	return 0;
 }
 
@@ -48,8 +50,8 @@ int PCF8591Read(int channel)
 	//set ADC I2C address
 	if (mraa_i2c_address(i2c_context, ADC_ADDRESS) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("ADC: mraa_i2c_address error\n");
-		SetCondition(I2C_BUS_ERROR);
+		ERRORPRINT("ADC: mraa_i2c_address error");
+		ps_set_condition(I2C_BUS_ERROR);
 		return -1;
 	}
 	else
@@ -62,14 +64,14 @@ int PCF8591Read(int channel)
 			//select new channel
 			if (mraa_i2c_write(i2c_context, writeData, sizeof(writeData)) != MRAA_SUCCESS)
 			{
-				ERRORPRINT("ADC: mraa_i2c_write() - %s\n", strerror(errno));
-				SetCondition(ANALOG_ERROR);
+				ERRORPRINT("ADC: mraa_i2c_write() - %s", strerror(errno));
+				ps_set_condition(ANALOG_ERROR);
 				return -1;
 			}
 			else
 			{
 				lastChannel = channel;
-				DEBUGPRINT("ADC: channel: %i selected\n", channel);
+				DEBUGPRINT("ADC: channel: %i selected", channel);
 			}
 		}
 
@@ -77,14 +79,14 @@ int PCF8591Read(int channel)
 		//read results
 		if (mraa_i2c_read(i2c_context, readData, sizeof(readData)) == 0)
 		{
-			ERRORPRINT("ADC: mraa_i2c_read() - %s\n", strerror(errno));
-			SetCondition(ANALOG_ERROR);
+			ERRORPRINT("ADC: mraa_i2c_read() - %s", strerror(errno));
+			ps_set_condition(ANALOG_ERROR);
 			return -1;
 		}
 
 		int adcData = readData[1];
 
-		DEBUGPRINT("ADC %i = 0x%02x\n", channel, adcData);
+		DEBUGPRINT("ADC %i = 0x%02x", channel, adcData);
 
 		switch (channel)
 		{
@@ -97,25 +99,28 @@ int PCF8591Read(int channel)
 		{
 			float volts = (float) adcData * BATTERY_VOLTS_FACTOR;
 
-			psMessage_t msg;
-			psInitPublish(msg, BATTERY);
-			msg.batteryPayload.volts = (uint16_t) (volts * 10.0);
+			ps_registry_set_real("power", "volts", volts);
 
-			DEBUGPRINT("Battery = %0.1fv\n", volts);
+			DEBUGPRINT("Battery = %0.1fv", volts);
 
 			if (volts < BATTERY_CRITICAL_VOLTS)
 			{
-				msg.batteryPayload.status = BATTERY_CRITICAL_STATUS;
+				ps_set_condition(BATTERY_CRITICAL);
+				ps_registry_set_text("power", "status", "CRITICAL");
 			}
 			else if (volts < BATTERY_LOW_VOLTS)
 			{
-				msg.batteryPayload.status = BATTERY_LOW_STATUS;
+				ps_cancel_condition(BATTERY_CRITICAL);
+				ps_set_condition(BATTERY_LOW);
+				ps_registry_set_text("power", "status", "LOW");
 			}
 			else
 			{
-				msg.batteryPayload.status = BATTERY_NOMINAL_STATUS;
+				ps_cancel_condition(BATTERY_CRITICAL);
+				ps_cancel_condition(BATTERY_LOW);
+				ps_registry_set_text("power", "status", "normal");
 			}
-			NewBrokerMessage(msg);
+
 		}
 		break;
 		default:

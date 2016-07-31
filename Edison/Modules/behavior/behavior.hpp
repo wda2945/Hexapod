@@ -16,16 +16,13 @@
 //behavior init
 int BehaviorInit();
 
-//update globals and hooks
-void BehaviorProcessMessage(psMessage_t *msg);
-
-int ReportAvailableScripts();
+void RegisterAvailableScripts();
 
 //scripting system
 int InitScriptingSystem();
 int ScriptProcessMessage(psMessage_t *msg);
 int InvokeUpdate();
-int AvailableScripts();
+void AvailableScripts();
 
 //LUA globals and scripts
 int InitPilotingCallbacks(lua_State *L);
@@ -37,19 +34,19 @@ int LoadAllScripts(lua_State *L);
 int UpdateGlobalsFromMessage(lua_State *L, psMessage_t *msg);
 void SetGlobal(lua_State *L, const char *name, float value);
 
-extern bool MCPonline;
-extern bool MCPconfigRequested;
-extern bool MCPconfigured;
-
-extern time_t lastMCPresponseTime;
-extern time_t MCPconfigRequestedTime;
-
-extern bool MOTonline;
-extern bool MOTconfigRequested;
-extern bool MOTconfigured;
-
-extern time_t lastMOTresponseTime;
-extern time_t MOTconfigRequestedTime;
+//extern bool MCPonline;
+//extern bool MCPconfigRequested;
+//extern bool MCPconfigured;
+//
+//extern time_t lastMCPresponseTime;
+//extern time_t MCPconfigRequestedTime;
+//
+//extern bool MOTonline;
+//extern bool MOTconfigRequested;
+//extern bool MOTconfigured;
+//
+//extern time_t lastMOTresponseTime;
+//extern time_t MOTconfigRequestedTime;
 
 extern bool APPonline;
 extern time_t lastAPPresponseTime;

@@ -1,3 +1,3 @@
 #!/bin/bash
 cd /home/root
-/home/root/stable/overmind
+/home/root/stable/hexapod

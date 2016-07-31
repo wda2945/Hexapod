@@ -10,32 +10,9 @@
 
 //Notifications - events
 
-#define EVENT(e, n) e,
 
-typedef enum {
 
-#include "NotificationEventsList.h"
-
- EVENT_COUNT
-} Event_enum;
-
-#undef EVENT
-
-//Notifications - conditions
-
-#define CONDITION(e, n) e,
-
-typedef enum {
-
-#include "NotificationConditionsList.h"
-
-    CONDITION_COUNT
-} Condition_enum;
-
-#undef CONDITION
-
-typedef uint64_t NotificationMask_t;
-#define NOTIFICATION_MASK(e) ((uint64_t)0x1 << e)
+//#include "NotificationConditionsList.h"
 
 #endif	/* NOTIFICATIONS_H */
 

@@ -22,28 +22,26 @@
 #include "hexapod.h"
 
 #include "lua.hpp"
+
 #include "mraa.h"
 
 #include "serial/socket/ps_socket_server.hpp"
+#include "syslog/linux/ps_syslog_linux.hpp"
 
 #include "arbotix/arbotix.hpp"
 #include "autopilot/autopilot.hpp"
 #include "behavior/behavior.hpp"
+#include "scanner/scanner.hpp"
 #include "dancer/dancer.hpp"
 #include "i2c_task/i2c_task.hpp"
 #include "navigator/navigator.hpp"
+#include "responder/responder.hpp"
+
+#include "main_debug.h"
 
 using namespace std;
 
 FILE *mainDebugFile;
-
-#ifdef MAIN_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(mainDebugFile, __VA_ARGS__);
-#else
-#define DEBUGPRINT(...) tfprintf(mainDebugFile, __VA_ARGS__);
-#endif
-
-#define ERRORPRINT(...) tprintf(__VA_ARGS__);tfprintf(mainDebugFile, __VA_ARGS__);
 
 #define PROCESS_NAME "overmind"
 
@@ -52,109 +50,129 @@ bool initComplete = false;
 int *pidof (char *pname);
 void KillAllOthers(string name);
 void fatal_error_signal (int sig);
+void SIGPIPE_signal (int sig){}
 
 int main()
 {
 	int reply;
-	string initFail = "";
+	string initFail = "";	//fail flag
 
+	//set up logging
 	mainDebugFile = fopen_logfile("main");
-	DEBUGPRINT("main() Logfile opened\n");
 
+	//kill any running services
 	KillAllOthers(PROCESS_NAME);
 
+	//initialize mraa
 	reply = mraa_init();
 
-	if (reply != MRAA_SUCCESS && reply != MRAA_ERROR_PLATFORM_ALREADY_INITIALISED)
+	if (reply != MRAA_SUCCESS)
 	{
-		ERRORPRINT("mraa_init() fail: %i\n", reply);
+		ERRORPRINT("mraa_init() fail: %i", reply);
 		initFail = "mraa";
 	}
 	else {
-		DEBUGPRINT("mraa init() OK\n");
+		DEBUGPRINT("mraa init() OK");
 	}
 
+	const struct sigaction sa {SIGPIPE_signal, 0, 0};
+	sigaction(SIGPIPE, &sa, NULL);
+
+	//plumbing
+
+	//start the log
+	ps_syslog_linux syslog;
+
 	//start the socket server with ping
-	ps_socket_server(4000, "192.168.1.1");
+	ps_socket_server appConnection(4000, nullptr);
 
 	//init subsystems
 
 	//start arbotix threads
 	if (Arbotix_INIT() != 0)
 	{
-		ERRORPRINT("ArbotixInit() fail\n");
+		ERRORPRINT("ArbotixInit() fail");
 		initFail = "arbotix";
 	}
 	else {
-		DEBUGPRINT("ArbotixInit() OK\n");
+		DEBUGPRINT("ArbotixInit() OK");
+	}
+
+	//start LIDAR threads
+	if (Scanner_INIT() != 0)
+	{
+		ERRORPRINT("ScannerInit() fail");
+		initFail = "lidar";
+	}
+	else {
+		DEBUGPRINT("ScannerInit() OK");
 	}
 
 	//start autopilot threads
 	if (Autopilot_INIT() != 0)
 	{
-		ERRORPRINT("AutopilotInit() fail\n");
+		ERRORPRINT("AutopilotInit() fail");
 		initFail = "pilot";
 	}
 	else {
-		DEBUGPRINT("AutopilotInit() OK\n");
+		DEBUGPRINT("AutopilotInit() OK");
 	}
 
 	//start behavior tree threads
 	if (Behavior_INIT() != 0)
 	{
-		ERRORPRINT("BehaviorInit() fail\n");
+		ERRORPRINT("BehaviorInit() fail");
 		initFail = "behavior";
 	}
 	else {
-		DEBUGPRINT("BehaviorInit OK\n");
+		DEBUGPRINT("BehaviorInit OK");
 	}
 
 	//start Dancer threads
 	if (Dancer_INIT() != 0)
 	{
-		ERRORPRINT("DancerInit()\n fail");
+		ERRORPRINT("DancerInit() fail");
 		initFail = "dancer";
 	}
 	else {
-		DEBUGPRINT("DancerInit() OK\n");
+		DEBUGPRINT("DancerInit() OK");
 	}
 
 	//start i2c threads
 	if (I2C_INIT() != 0)
 	{
-		ERRORPRINT("I2CInit() fail\n");
+		ERRORPRINT("I2CInit() fail");
 		initFail = "i2c";
 	}
 	else {
-		DEBUGPRINT("I2CInit() OK\n");
+		DEBUGPRINT("I2CInit() OK");
 	}
 
 	//start navigator threads
 	if (Navigator_INIT() != 0)
 	{
-		ERRORPRINT("NavigatorInit() fail\n");
+		ERRORPRINT("NavigatorInit() fail");
 		initFail = "navigator";
 	}
 	else {
-		DEBUGPRINT("NavigatorInit() OK\n");
+		DEBUGPRINT("NavigatorInit() OK");
 	}
 
 	if (Responder_INIT() != 0)
 	{
-		ERRORPRINT( "ResponderInit() fail\n");
+		ERRORPRINT( "ResponderInit() fail");
 		initFail = "responder";
 	}
 	else {
-		DEBUGPRINT("ResponderInit() OK\n");
+		DEBUGPRINT("ResponderInit() OK");
 	}
 
 	initComplete = true;
 
 	if (initFail.length() > 0)
 	{
-		SetCondition(INIT_ERROR);
-		LogError("Hexapod Init Fail '%s'\n", initFail.c_str());
-		SetCondition(INIT_ERROR);
+		ps_set_condition(INIT_ERROR);
+		LogError("Hexapod Init Fail '%s'", initFail.c_str());
 		sleep(5);
 		return -1;
 	}
@@ -187,23 +205,20 @@ int main()
 	{
 		psMessage_t msg;
 		psInitPublish(msg, TICK_1S);
-		msg.tickPayload.systemPowerState = POWER_ACTIVE;
 		NewBrokerMessage(msg);
-
 		sleep(1);
 	}
 
 	return 0;
 }
 
-
 //other signals
 volatile sig_atomic_t fatal_error_in_progress = 0;
 void fatal_error_signal (int sig)
 {
 	/* Since this handler is established for more than one kind of signal, it might still get invoked recursively by delivery of some other kind of signal. Use a static variable to keep track of that. */
-	if (fatal_error_in_progress)
-		raise (sig);
+	if (fatal_error_in_progress) raise (sig);
+
 	fatal_error_in_progress = 1;
 
 	LogError("Signal %i raised", sig);
@@ -216,7 +231,7 @@ from the process correctly. */
 	raise (sig);
 }
 
-//functions to find any existing processes of a given name
+//helper functions to find any existing processes of a given name
 
 /* checks if the string is purely an integer
  * we can do it with `strtol' also

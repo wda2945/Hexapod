@@ -1,10 +1,10 @@
 /*
- * luaglobals.c
+ * scriptloader.cpp
  *
  *  Created on: Aug 13, 2014
  *      Author: martin
  */
-//creates and updates robot-related global variables in the LUA environment
+//loads scripts into the LUA environment
 
 #include <stdint.h>
 #include <stdbool.h>

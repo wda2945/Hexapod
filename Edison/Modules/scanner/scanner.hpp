@@ -13,8 +13,6 @@
 //scanner task
 int ScannerInit();
 
-void ScannerProcessMessage(psMessage_t *msg);
-
 ActionResult_enum proximityStatus(ProxSectorMask_enum _sectors,  ProxStatusMask_enum _status);
 
 #endif

@@ -30,6 +30,10 @@ using namespace std;
 
 lua_State	*btLuaState = NULL;
 
+//registry
+static int GetRegistry(lua_State *L);
+static int SetRegistry(lua_State *L);
+
 //logging
 static int Print(lua_State *L);				//Print("...")
 static int Alert(lua_State *L);
@@ -38,7 +42,7 @@ static int Fail(lua_State *L);
 string  behaviorName = "Idle";
 BehaviorStatus_enum behaviorStatus = BEHAVIOR_INVALID;
 
-string lastActivityName = "none";
+string lastActivityName = 	"none";
 string lastActivityStatus = "invalid";
 
 string lastLuaCall 			= "";
@@ -74,6 +78,14 @@ int InitScriptingSystem()
 	   	return -1;
 	}
 
+	ps_registry_add_new("Behavior Status", "active", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Behavior Status", "status", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Behavior Status", "fail at", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Behavior Status", "fail reason", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+
+	ps_registry_set_text("Behavior Status", "active", "idle");
+	ps_registry_set_text("Behavior Status", "status", "active");
+
 	//open standard libraries
 	luaL_openlibs(btLuaState);
 
@@ -81,6 +93,12 @@ int InitScriptingSystem()
 	lua_setglobal(btLuaState, "math");
 	luaopen_string(btLuaState);
 	lua_setglobal(btLuaState, "string");
+
+	//registry callbacks
+	lua_pushcfunction(btLuaState, GetRegistry);			//access registry
+	lua_setglobal(btLuaState, "GetRegistry");
+	lua_pushcfunction(btLuaState, SetRegistry);			//access registry
+	lua_setglobal(btLuaState, "SetRegistry");
 
 	//register basic call-backs
 	lua_pushcfunction(btLuaState, Alert);				//Alert Message to App
@@ -94,7 +112,6 @@ int InitScriptingSystem()
 	reply += InitPilotingCallbacks(btLuaState);			//set BT-related call-backs
 	reply += InitProximityCallbacks(btLuaState);
 	reply += InitSystemCallbacks(btLuaState);
-	reply += InitLuaGlobals(btLuaState);				//load system global constants
 	reply += LoadAllScripts(btLuaState);				//load all LUA scripts
 
 	lua_pop(btLuaState, lua_gettop( btLuaState));		//clean stack
@@ -108,7 +125,7 @@ int ScriptProcessMessage(psMessage_t *msg)
 {
 	if (!btLuaState) return -1;
 
-	switch (msg->header.messageType)
+	switch (msg->messageType)
 	{
 	case RELOAD:
 		//reload all scripts
@@ -140,8 +157,9 @@ int ScriptProcessMessage(psMessage_t *msg)
 				}
 				else
 				{
+					ps_registry_set_text("Behavior Status", "active", msg->namePayload.name);
+					ps_registry_set_text("Behavior Status", "status", "active");
 					behaviorName = string(msg->namePayload.name);
-					behaviorStatus = BEHAVIOR_ACTIVE;
 				}
 			}
 			else
@@ -159,8 +177,7 @@ int ScriptProcessMessage(psMessage_t *msg)
 		break;
 
 	default:
-		//process others to update globals
-		return UpdateGlobalsFromMessage(btLuaState, msg);
+		break;
 	}
 	return 0;
 }
@@ -209,40 +226,32 @@ int InvokeUpdate()
 
 				if ((statusCode != behaviorStatus) || (behaviorName.compare(lastActivityName) != 0))
 				{
-					psMessage_t activityMsg;
-
 					//change in activity or status
 
-					psInitPublish(activityMsg, ACTIVITY);
-					strncpy(activityMsg.behaviorStatusPayload.behavior, behaviorName.c_str(), PS_SHORT_NAME_LENGTH);
-					activityMsg.behaviorStatusPayload.status = statusCode;
+					ps_registry_set_text("Behavior Status", "status", behaviorStatusNames[statusCode]);
 
 					switch (statusCode)
 					{
 					case BEHAVIOR_SUCCESS:
 						LogInfo("%s SUCCESS", behaviorName.c_str());
-						activityMsg.behaviorStatusPayload.lastLuaCallFail[0] = '\0';
-						activityMsg.behaviorStatusPayload.lastFailReason[0] = '\0';
-						RouteMessage(activityMsg);
+						ps_registry_set_text("Behavior Status", "fail at", "");
+						ps_registry_set_text("Behavior Status", "fail reason", "");
 						break;
 					case BEHAVIOR_RUNNING:
-						activityMsg.behaviorStatusPayload.lastLuaCallFail[0] = '\0';
-						activityMsg.behaviorStatusPayload.lastFailReason[0] = '\0';
-						RouteMessage(activityMsg);
+						ps_registry_set_text("Behavior Status", "fail at", "");
+						ps_registry_set_text("Behavior Status", "fail reason", "");
 						break;
 					case BEHAVIOR_FAIL:
 						LogInfo("%s FAIL @ %s - %s", behaviorName.c_str(), lastLuaCallFail.c_str(), lastLuaCallReason.c_str());
-						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, lastLuaCallFail.c_str(), PS_SHORT_NAME_LENGTH);
-						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, lastLuaCallReason.c_str(), PS_SHORT_NAME_LENGTH);
-						RouteMessage(activityMsg);
+						ps_registry_set_text("Behavior Status", "fail at", lastLuaCallFail.c_str());
+						ps_registry_set_text("Behavior Status", "fail reason", lastLuaCallReason.c_str());
 						break;
 					case BEHAVIOR_ACTIVE:
 					case BEHAVIOR_INVALID:
 					default:
 						LogError("%s Bad Response", behaviorName.c_str());
-						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, "update", PS_SHORT_NAME_LENGTH);
-						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, "Bad Status", PS_SHORT_NAME_LENGTH);
-						RouteMessage(activityMsg);
+						ps_registry_set_text("Behavior Status", "fail at", "update");
+						ps_registry_set_text("Behavior Status", "fail reason", "Bad Status");
 						break;
 					}
 
@@ -270,13 +279,8 @@ int InvokeUpdate()
 }
 
 //report available activity scripts
-int AvailableScripts()
+void AvailableScripts()
 {
-	psMessage_t msg;
-	int messageCount = 0;
-
-	psInitPublish(msg, SCRIPT);
-
 	//look up activities table
 	lua_getglobal(btLuaState, "ActivityList");
 	int table = lua_gettop( btLuaState);
@@ -286,30 +290,121 @@ int AvailableScripts()
 		//not a table
 		LogError("No Activities table\n" );
 		lua_pop(btLuaState, lua_gettop( btLuaState));
-		return 0;
 	}
+
+	int index = 0;
 
     lua_pushnil(btLuaState);  /* first key */
     while (lua_next(btLuaState, table) != 0) {
       /* uses 'key' (at index -2) and 'value' (at index -1) */
-		strncpy(msg.namePayload.name, lua_tostring(btLuaState, -1), PS_NAME_LENGTH);
-		RouteMessage(msg);
-		messageCount++;
 
-		//delay
-		usleep( MESSAGE_DELAY * 1000);
+    	const char *scriptName =  lua_tostring(btLuaState, -1);
+
+    	ps_registry_add_new("Behaviors", scriptName, PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_READ_ONLY);
+    	ps_registry_set_text("Behaviors", scriptName, scriptName);
 
       /* removes 'value'; keeps 'key' for next iteration */
       lua_pop(btLuaState, 1);
     }
 	lua_pop(btLuaState, lua_gettop( btLuaState));
 
-	LogRoutine("%i activities", messageCount);
-
-	return messageCount;
+	LogRoutine("%i activities", index);
 }
 
 //call-backs
+
+static int GetRegistry(lua_State *L)		//GetRegistry('domain', 'name')
+{
+	const char *domain = lua_tostring(L,1);
+	const char *name = lua_tostring(L,2);
+
+    ps_registry_datatype_t type = ps_registry_get_type(domain, name);
+
+    switch(type)
+    {
+    case PS_REGISTRY_UNKNOWN_TYPE:
+    default:
+    	return 0;
+    	break;
+    case PS_REGISTRY_INT_TYPE:
+    {
+    	int value;
+    	if (ps_registry_get_int(domain, name, &value) != PS_OK) return 0;
+    	lua_pushinteger(L, value);
+    	return 1;
+    }
+    break;
+    case PS_REGISTRY_REAL_TYPE:
+    {
+    	float value;
+    	if (ps_registry_get_real(domain, name, &value) != PS_OK) return 0;
+    	lua_pushnumber(L, value);
+    	return 1;
+    }
+    break;
+    case PS_REGISTRY_TEXT_TYPE:
+    {
+    	char value[100];
+    	if (ps_registry_get_text(domain, name, value, 100) != PS_OK) return 0;
+    	lua_pushstring(L, value);
+    	return 1;
+    }
+    break;
+    case PS_REGISTRY_BOOL_TYPE:
+    {
+    	bool value;
+    	if (ps_registry_get_bool(domain, name, &value) != PS_OK) return 0;
+    	lua_pushboolean(L, value);
+    	return 1;
+    }
+    break;
+    }
+}
+
+static int SetRegistry(lua_State *L)		//SetRegistry('domain', 'name', value)
+{
+	const char *domain = lua_tostring(L,1);
+	const char *name = lua_tostring(L,2);
+
+    ps_registry_datatype_t type = ps_registry_get_type(domain, name);
+
+    switch(type)
+    {
+    case PS_REGISTRY_UNKNOWN_TYPE:
+    default:
+    	return 0;
+    	break;
+    case PS_REGISTRY_INT_TYPE:
+    {
+    	int value = lua_tointeger(L,3);
+    	ps_registry_set_int(domain, name, value);
+    	return 0;
+    }
+    break;
+    case PS_REGISTRY_REAL_TYPE:
+    {
+    	float value = lua_tonumber(L,3);
+    	ps_registry_set_real(domain, name, value);
+    	return 0;
+    }
+    break;
+    case PS_REGISTRY_TEXT_TYPE:
+    {
+    	const char *value = lua_tostring(L, 3);;
+    	ps_registry_set_text(domain, name, value);
+    	return 0;
+    }
+    break;
+    case PS_REGISTRY_BOOL_TYPE:
+    {
+    	bool value = lua_toboolean(L,3);
+    	ps_registry_set_bool(domain, name, value);
+    	return 0;
+    }
+    break;
+    }
+}
+
 
 //Alert
 static int Alert(lua_State *L)				//Alert("...")
@@ -332,20 +427,7 @@ static int Print(lua_State *L)				//Print("...")
 	LogRoutine("lua: %s\n",text);
 	return 0;
 }
-//static int DebugPrint(lua_State *L)				//Print("...")
-//{
-//#ifdef BEHAVIOR_TREE_DEBUG
-//	const char *text = lua_tostring(L,1);
-//	DEBUGPRINT("lua: %s\n",text);
-//#endif
-//	return 0;
-//}
-//static int ErrorPrint(lua_State *L)				//Print("...")
-//{
-//	const char *text = lua_tostring(L,1);
-//	ERRORPRINT("lua: %s\n",text);
-//	return 0;
-//}
+
 //Fail
 char failBuffer[PS_NAME_LENGTH];
 static int Fail(lua_State *L)				//Fail('name')

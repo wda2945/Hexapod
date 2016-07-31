@@ -18,8 +18,6 @@ int PCF8591Init();
 //read selected channel
 int PCF8591Read(int channel);
 
-
-
 #ifdef __cplusplus
 }
 #endif

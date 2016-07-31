@@ -10,26 +10,37 @@
 #define _MESSAGES_H_
 
 #include <stdint.h>
-#include "ps_api/ps_types.h"
+#include "ps.h"
 
-//---------------------Message Enums
+//----------------------QOS
 
-#include "Messages/MessageEnums.h"
-#include "Messages/NotificationEnums.h"
+typedef enum {
+    PS_QOS1,    //critical
+    PS_QOS2,    //important
+    PS_QOS3     //discardable
+} psQOS_enum;
 
 //---------------------Message Formats
 
+#include "/Users/martin/Dropbox/RoboticsCodebase/RobotMonitor/rm_messages/rm_message_formats.h"
 #include "Messages/MessageFormats.h"
 
-//---------------------Message Topics enum
+//---------------------Message Topics
 
-#include "Messages/Topics.h"
+#define topicmacro(e, name) e,
+typedef enum {
+#include "/Users/martin/Dropbox/RoboticsCodebase/RobotMonitor/rm_messages/rm_topics_list.h"
+#include "messages/topics_list.h"
+    PS_TOPIC_COUNT
+} ps_topic_id_enum;
+#undef topicmacro
 
 //---------------------Message codes enum
 
 #define messagemacro(m,q,t,f,l) m,
 typedef enum {
-#include "Messages/MessageList.h"
+#include "/Users/martin/Dropbox/RoboticsCodebase/RobotMonitor/rm_messages/rm_message_list.h"
+#include "messages/MessageList.h"
     PS_MSG_COUNT
 } psMessageType_enum;
 #undef messagemacro
@@ -39,6 +50,7 @@ typedef enum {
 #define formatmacro(e,t,p,s) e,
 
 typedef enum {
+#include "/Users/martin/Dropbox/RoboticsCodebase/RobotMonitor/rm_messages/rm_message_format_list.h"
 #include "Messages/MsgFormatList.h"
     PS_FORMAT_COUNT
 } psMsgFormat_enum;
@@ -49,12 +61,12 @@ typedef enum {
 //Generic struct for all messages
 
 #define formatmacro(e,t,p,s) t p;
-#pragma pack(1)
 typedef struct {
-    psMessageHeader_t header;
+#pragma pack(1)
+    ps_message_id_t messageType;
     //Union option for each payload type
     union {
-        uint8_t packet[1];
+#include "/Users/martin/Dropbox/RoboticsCodebase/RobotMonitor/rm_messages/rm_message_format_list.h"
 #include "Messages/MsgFormatList.h"
     };
 } psMessage_t;
@@ -62,8 +74,6 @@ typedef struct {
 #undef formatmacro
 
 //message lookup tables. Initialized in messages.c
-
-extern char *subsystemNames[SUBSYSTEM_COUNT];
 
 extern char *psTopicNames[PS_TOPIC_COUNT];
 
@@ -86,14 +96,5 @@ extern int psMessageFormatLengths[PS_FORMAT_COUNT];
 #define settingmacro(name, var, min, max, def) extern float var;
 #include "settings.h"
 #undef settingmacro
-
-//other name lookups
-extern char *batteryStateNames[BATTERY_STATUS_COUNT];
-extern char *eventNames[EVENT_COUNT];
-extern char *conditionNames[CONDITION_COUNT];
-extern char *stateCommandNames[COMMAND_COUNT];
-extern char *powerStateNames[POWER_STATE_COUNT];
-extern char *ovmCommandNames[OVERMIND_ACTION_COUNT];
-extern char *arbStateNames[ARB_STATE_COUNT];
 
 #endif

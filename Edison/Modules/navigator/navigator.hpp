@@ -9,6 +9,4 @@
 
 int NavigatorInit();
 
-void NavigatorProcessMessage(psMessage_t *msg);
-
 #endif
