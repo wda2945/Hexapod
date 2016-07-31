@@ -10,6 +10,8 @@
 #include "nuke.h"
 #include <GLKit/GLKMatrix4.h>
 
+const char *legNames[6] = {"RIGHT_FRONT","RIGHT_REAR","LEFT_FRONT","LEFT_REAR","RIGHT_MIDDLE","LEFT_MIDDLE"};
+
 /* min and max positions for each servo */
 int mins[] = {0,
     222, 225, 159, 164, 279, 158, 223, 229, 159, 156, 272, 155, 226, 233, 158, 157, 271, 157};
@@ -39,55 +41,89 @@ int servoToJoint[SERVO_COUNT+1] = {-1,
 
 //coxa locations relative to body center
 int coxaX[LEG_COUNT] = {X_COXA, -X_COXA, X_COXA, -X_COXA, 0, 0};
-int coxaY[LEG_COUNT] = {Y_COXA, Y_COXA, -Y_COXA, -Y_COXA, M_COXA, -M_COXA};
+int coxaY[LEG_COUNT] = {-Y_COXA, -Y_COXA, Y_COXA, Y_COXA, -M_COXA, M_COXA};
 
-Hexapod *theHexapod;
+Leg legs[LEG_COUNT];
+GLKVector3 legReset[LEG_COUNT];
+int servoOOR[SERVO_COUNT+1];
+
+Hexapod theHexapod;
 
 Hexapod::Hexapod()
 {
-    theHexapod = this;
+    //endpoints
+    legReset[RIGHT_FRONT].x = 200;
+    legReset[RIGHT_FRONT].y = -200;
+    legReset[RIGHT_FRONT].z = 0;
     
-    bodyOffset = bodyRotation = {0,0,0};
+    legReset[RIGHT_REAR].x = -200;
+    legReset[RIGHT_REAR].y = -200;
+    legReset[RIGHT_REAR].z = 0;
     
-    bodyMatrix = GLKMatrix4MakeScale(X_COXA * 2.0, Y_COXA * 2.0, 50.0);
+    legReset[LEFT_FRONT].x = 200;
+    legReset[LEFT_FRONT].y = 200;
+    legReset[LEFT_FRONT].z = 0;
     
-    legs[RIGHT_FRONT].endpoint.x = 52;
-    legs[RIGHT_FRONT].endpoint.y = 118;
-    legs[RIGHT_FRONT].endpoint.z = 97;
+    legReset[LEFT_REAR].x = -200;
+    legReset[LEFT_REAR].y = 200;
+    legReset[LEFT_REAR].z = 0;
     
-    legs[RIGHT_REAR].endpoint.x = -52;
-    legs[RIGHT_REAR].endpoint.y = 118;
-    legs[RIGHT_REAR].endpoint.z = 97;
+    legReset[RIGHT_MIDDLE].x = 0;
+    legReset[RIGHT_MIDDLE].y = -280;
+    legReset[RIGHT_MIDDLE].z = 0;
     
-    legs[RIGHT_MIDDLE].endpoint.x = 0;
-    legs[RIGHT_MIDDLE].endpoint.y = 118;
-    legs[RIGHT_MIDDLE].endpoint.z = 97;
-    
-    legs[LEFT_MIDDLE].endpoint.x = 0;
-    legs[LEFT_MIDDLE].endpoint.y = -118;
-    legs[LEFT_MIDDLE].endpoint.z = 97;
-    
-    legs[LEFT_FRONT].endpoint.x = 52;
-    legs[LEFT_FRONT].endpoint.y = -118;
-    legs[LEFT_FRONT].endpoint.z = 97;
-    
-    legs[LEFT_REAR].endpoint.x = -52;
-    legs[LEFT_REAR].endpoint.y = -118;
-    legs[LEFT_REAR].endpoint.z = 97;
+    legReset[LEFT_MIDDLE].x = 0;
+    legReset[LEFT_MIDDLE].y = 280;
+    legReset[LEFT_MIDDLE].z = 0;
+
+    reset(-2);
     
     for (int i = 0; i < LEG_COUNT; i++)
     {
         legs[i].setLegNumber(i);
-        legs[i].inverseKinematics();
     }
+    
+    for (int i=0; i<=SERVO_COUNT; i++)
+    {
+        servoOOR[i] = 0;
+    }
+    
 }
-
+void Hexapod::reset(int leg_number)
+{
+    for (int i=0; i<6; i++)
+    {
+        if ((i == leg_number) || (leg_number == -1))
+        {
+            legs[i].endpoint.x = legReset[i].x;
+            legs[i].endpoint.y = legReset[i].y;
+            legs[i].endpoint.z = legReset[i].z;
+        }
+    }
+    if ((leg_number == -1) || (leg_number == -2))
+    {
+        //body xyz
+        bodyOffset  =  {0.0, 0.0, BODY_REST_HEIGHT};
+    }
+    if ((leg_number == -1) || (leg_number == -3))
+    {
+        //body rot
+        bodyRotation = {0.0, 0.0, 0.0};
+    }
+    
+}
 void Hexapod::update()
 {
     //update body
+    
+    bodyMatrix = GLKMatrix4MakeTranslation(bodyOffset.x, bodyOffset.y, bodyOffset.z);
+    bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.x, 1.0, 0.0, 0);
+    bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.y, 0, 1.0, 0);
+    bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.z, 0, 0, 1.0);
+    
     for (int i = 0; i < LEG_COUNT; i++)
     {
-        legs[i].updateServos(bodyOffset, bodyRotation);
+        legs[i].updateServos(bodyMatrix, false);
     }
 }
 GLKMatrix4 Hexapod::getMatrix(int servo)

@@ -14,16 +14,23 @@
 #include "nuke.h"
 
 class Leg {
-    public:
+public:
     int myLegId;
     
     JointServo coxa, femur, tibia;
-    GLKVector4 endpoint, effector;
-    GLKVector4 coxaOffset;
+    
+    GLKVector4 endpoint;
+    GLKVector4 coxaOrigin;
+    GLKVector4 transformedCoxaOrigin;
+    
+    double naturalAngle;     //radians
     
     void setLegNumber(int leg);
-    void updateServos(GLKVector3 bodyOffset, GLKVector3 bodyRotation);
-    void inverseKinematics();
+    bool newEndpoint(GLKVector4 ep);
+    
+    void updateServos(GLKMatrix4 bodyTransform, bool forward);
+    
+    void inverseKinematics(GLKVector4 effector);
 };
 
 #endif /* defined(__BugPoser__Leg__) */

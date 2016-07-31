@@ -12,31 +12,34 @@
 #include <stdio.h>
 #import <GLKit/GLKMathTypes.h>
 
+#define FEMUR_ANGLE 0.26
+#define TIBIA_ANGLE 1.37
+
 class JointServo {
 public:
     int myServoId;
-    int myLeg;
-    int myJoint;
+    int myLegId;
+    int myJointType;
     
-    GLKVector4 origin;
-//    GLKMatrix4 originTransform;
+    float naturalAngle {0};
+    float currentAngle {0};
+    float ikSolution   {0};
+    
+    float minAngle;
+    float maxAngle;
+    
+    GLKVector4 fkEndpoint;
+    
+    GLKMatrix4 originTransform;
     GLKMatrix4 modelViewMatrix;
-    
-    int maxAngle, minAngle;
-    int boneLength;
-    
-    int currentAngle;
-    int ikSolution;
-    
-    JointServo *nextJoint;
+
+    JointServo  *nextJoint;
     
     void setServoNumber(int servoNumber);
     
     GLKMatrix4 getModelViewMatrix();
     
-    void update();
+    void update(bool forward);
 };
-
-
 
 #endif /* defined(__BugPoser__JointServo__) */

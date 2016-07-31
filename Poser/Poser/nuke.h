@@ -27,14 +27,16 @@
  * We assume 4 legs are on the corners of a box defined by X_COXA x Y_COXA
  * Middle legs for a hexapod can be different Y, but should be halfway in X
  */
-#define X_COXA      60  // MM between front and back legs /2
-#define Y_COXA      60  // MM between front/back legs /2
+#define X_COXA      100  // MM between front legs and back legs /2
+#define Y_COXA      60  // MM between front and back legs /2
 #define M_COXA      100  // MM between two middle legs /2
 
+#define BODY_REST_HEIGHT 75    //MM
+
 /* Legs */
-#define L_COXA      52  // MM distance from coxa servo to femur servo
-#define L_FEMUR     82 // MM distance from femur servo to tibia servo
-#define L_TIBIA     140 // MM distance from tibia servo to foot
+#define L_COXA      55  // MM distance from coxa servo to femur servo
+#define L_FEMUR     65  // MM distance from femur servo to tibia servo
+#define L_TIBIA     130 // MM distance from tibia servo to foot
 
 /* Servo IDs */
 #define RM_TIBIA 18
@@ -63,9 +65,9 @@
 #define RIGHT_MIDDLE   4
 #define LEFT_MIDDLE    5
 
-typedef struct {
-    double x, y, z;
-} vector3;
+//typedef struct {
+//    double x, y, z;
+//} vector3;
 
 extern int mins[SERVO_COUNT+1];
 extern int maxs[SERVO_COUNT+1];
@@ -77,5 +79,7 @@ extern int servoToJoint[SERVO_COUNT+1];
 extern int coxaX[LEG_COUNT];
 extern int coxaY[LEG_COUNT];
 
+extern const char *legNames[6];
+extern int servoOOR[SERVO_COUNT+1];
 #endif
 

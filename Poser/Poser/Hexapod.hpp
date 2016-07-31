@@ -16,19 +16,21 @@
 class Hexapod {
 public:
     
-    Leg legs[LEG_COUNT];
-    GLKVector3 bodyOffset;
-    GLKVector3 bodyRotation;
+    GLKVector3 bodyOffset {0.0, 0.0, BODY_REST_HEIGHT};
+    GLKVector3 bodyRotation {0.0, 0.0, 0.0};
 
     GLKMatrix4 bodyMatrix;
     
     Hexapod();
     
     void update();
+    void reset(int leg_number);
     
     GLKMatrix4 getMatrix(int i);
 };
 
-extern Hexapod *theHexapod;
+extern Leg legs[LEG_COUNT];
+extern GLKVector3 legReset[LEG_COUNT];
+extern Hexapod theHexapod;
 
 #endif /* defined(__BugPoser__Hexapod__) */

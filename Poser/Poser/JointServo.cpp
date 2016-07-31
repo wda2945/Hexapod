@@ -7,17 +7,18 @@
 //
 
 #include "JointServo.hpp"
+#include "Hexapod.hpp"
 #include "nuke.h"
 #include <GLKit/GLKMatrix4.h>
 
 void JointServo::setServoNumber(int servoNumber)
 {
     myServoId   = servoNumber;
-    myLeg       = servoToLeg[servoNumber];
-    myJoint     = servoToJoint[servoNumber];
+    myLegId     = servoToLeg[servoNumber];
+    myJointType = servoToJoint[servoNumber];
     
-    minAngle    = mins[servoNumber];
-    maxAngle    = maxs[servoNumber];
+    minAngle    = (float) ((300 * mins[servoNumber] / 0x3ff) - 150) * M_PI / 180.0;
+    maxAngle    = (float) ((300 * maxs[servoNumber] / 0x3ff) - 150) * M_PI / 180.0;
     
     nextJoint   = NULL;
 }
@@ -27,56 +28,55 @@ GLKMatrix4 JointServo::getModelViewMatrix()
     return modelViewMatrix;
 }
 
-void JointServo::update()
+void JointServo::update(bool forward)
 {
-    currentAngle = ikSolution;
-    
-    //scale bone to size
-    GLKMatrix4 mvMatrix = GLKMatrix4MakeScale(10, boneLength, 10);
-    //transform to one end
-    switch(myLeg)
+    if (!forward)
     {
-        case LEFT_FRONT:
-        case LEFT_MIDDLE:
-        case LEFT_REAR:
-            mvMatrix = GLKMatrix4Translate(mvMatrix, 0, -boneLength / 2, 0);
-            break;
-        default:
-            //right
-            mvMatrix = GLKMatrix4Translate(mvMatrix, 0, boneLength / 2, 0);
-            break;
+        currentAngle = ikSolution;
     }
+    else
+    {
+        currentAngle = 0.0;
+    }
+    
+    if (ikSolution <= minAngle || ikSolution >= maxAngle)
+    {
+        servoOOR[myServoId] = 1;
+    }
+    else
+    {
+        servoOOR[myServoId] = 0;
+    }
+    
+    modelViewMatrix = GLKMatrix4Identity;
+    
+    GLKVector4 boneEnd;
+    
     //rotate
-    switch(myJoint)
+    switch(myJointType)
     {
         case COXA_SERVO:
-            mvMatrix = GLKMatrix4RotateZ(mvMatrix, currentAngle * M_PI / 180.0);
+            boneEnd = GLKVector4Make(0, L_COXA, 0, 1.0);
+            modelViewMatrix = GLKMatrix4RotateZ(modelViewMatrix, (currentAngle + naturalAngle - M_PI / 2));
+            modelViewMatrix = GLKMatrix4Multiply(originTransform, modelViewMatrix);
+            nextJoint->originTransform = GLKMatrix4TranslateWithVector4(modelViewMatrix, boneEnd);
+            fkEndpoint = GLKMatrix4MultiplyVector4(modelViewMatrix, boneEnd);
+            break;
+        case FEMUR_SERVO:
+
+            boneEnd = GLKVector4Make(0, L_FEMUR * cosf(-FEMUR_ANGLE), L_FEMUR * sinf(-FEMUR_ANGLE), 1.0);
+            modelViewMatrix = GLKMatrix4RotateX(modelViewMatrix, currentAngle);
+            modelViewMatrix = GLKMatrix4Multiply(originTransform, modelViewMatrix);
+            nextJoint->originTransform = GLKMatrix4TranslateWithVector4(modelViewMatrix, boneEnd);
+            fkEndpoint = GLKMatrix4MultiplyVector4(modelViewMatrix, boneEnd);
             break;
         default:
-            mvMatrix = GLKMatrix4RotateX(mvMatrix, currentAngle * M_PI / 180.0);
+
+            boneEnd = GLKVector4Make(0, L_TIBIA * cosf(TIBIA_ANGLE), L_TIBIA * sinf(TIBIA_ANGLE), 1.0);
+            modelViewMatrix = GLKMatrix4RotateX(modelViewMatrix, currentAngle);
+            modelViewMatrix = GLKMatrix4Multiply(originTransform, modelViewMatrix);
+            fkEndpoint = GLKMatrix4MultiplyVector4(modelViewMatrix, boneEnd);
             break;
     }
-    //transform to position
-    modelViewMatrix = GLKMatrix4Translate(mvMatrix, origin.x, origin.y, origin.z);
-    
-    //position of nextJoint
-    if (nextJoint)
-    {
-        GLKVector4 boneEnd;
-        switch(myLeg)
-        {
-            case LEFT_FRONT:
-            case LEFT_MIDDLE:
-            case LEFT_REAR:
-                boneEnd = GLKVector4Make(0, boneLength / 2, 0, 1.0);
-                break;
-            default:
-                //right
-                boneEnd = GLKVector4Make(0, -boneLength / 2, 0, 1.0);
-                break;
-        }
-        
-        nextJoint->origin = GLKMatrix4MultiplyVector4(modelViewMatrix, boneEnd);
-    }
-    
+
 }

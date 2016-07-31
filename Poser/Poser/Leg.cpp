@@ -15,17 +15,39 @@ void Leg::setLegNumber(int legNumber)
     myLegId = legNumber;
     
     coxa.setServoNumber(servoIds[legNumber][COXA_SERVO]);
-    coxa.boneLength = L_COXA;
     femur.setServoNumber(servoIds[legNumber][FEMUR_SERVO]);
-    femur.boneLength = L_FEMUR;
     tibia.setServoNumber(servoIds[legNumber][TIBIA_SERVO]);
-    tibia.boneLength = L_TIBIA;
+    
     coxa.nextJoint = &femur;
     femur.nextJoint = &tibia;
     
-    coxaOffset.x = coxaX[legNumber];
-    coxaOffset.y = coxaY[legNumber];
-    coxaOffset.z = 0;
+    coxaOrigin.x = coxaX[legNumber];
+    coxaOrigin.y = coxaY[legNumber];
+    coxaOrigin.z = 0;
+    coxaOrigin.w = 1.0;
+    
+    switch(legNumber)
+    {
+        case LEFT_FRONT:
+            naturalAngle = 1 * M_PI / 4;
+            break;
+        case LEFT_MIDDLE:
+            naturalAngle = 2 * M_PI / 4;
+            break;
+        case LEFT_REAR:
+            naturalAngle = 3 * M_PI / 4;
+            break;
+        case RIGHT_REAR:
+            naturalAngle = 5 * M_PI / 4;
+            break;
+        case RIGHT_MIDDLE:
+            naturalAngle = 6 * M_PI / 4;
+            break;
+        case RIGHT_FRONT:
+            naturalAngle = 7 * M_PI / 4;
+            break;
+    }
+    coxa.naturalAngle = naturalAngle;
 }
 
 /* Convert radians to servo position offset. */
@@ -34,46 +56,83 @@ int radToServo(float rads){
     return (int) val;
 }
 
-void Leg::inverseKinematics()
+double normalizeAngle(double radians)
+{
+    if (fabs(radians) < M_PI) return radians;
+    else if (radians > 0)
+    {
+        while (radians >= M_PI) radians -= 2 * M_PI;
+    }
+    else
+    {
+        while (radians <= -M_PI) radians += 2 * M_PI;
+    }
+    return radians;
+}
+
+void Leg::inverseKinematics(GLKVector4 effector)
 {
     /* Simple 3dof leg solver. effector,y,z are the lengths from the Coxa rotate to the endpoint. */
     
     // first, make this a 2DOF problem... by solving coxa
-    coxa.ikSolution = 368 + radToServo(atan2(effector.x, effector.y));
+//    printf("Leg: %s\n", legNames[myLegId]);
+//    printf("atan2(effector.y, effector.x) =  %.0f degrees\n", atan2(effector.y, effector.x) * 180 / M_PI);
+//    printf("naturalAngle =  %.0f degrees\n", naturalAngle * 180 / M_PI);
+    
+    coxa.ikSolution = normalizeAngle((atan2(effector.y, effector.x) - naturalAngle));
+
+//    printf("coxa.ikSolution =  %.0f degrees\n", coxa.ikSolution * 180 / M_PI);
+
     double trueX = sqrt(effector.x * effector.x + effector.y * effector.y) - L_COXA;
-    double im = sqrt(effector.x * effector.x + effector.z * effector.z);    // length of imaginary leg
+    double im = fabs(sqrt(trueX * trueX + effector.z * effector.z));    // length of imaginary leg
     
     // get femur angle above horizon...
-    double q1 = -atan2(effector.z ,trueX);
+
+    // get femur angle below horizon...
+    double q1 = -atan2(fabs(effector.z) ,trueX);
+    
+    // get total femur angle...
     double d1 = L_FEMUR * L_FEMUR - L_TIBIA * L_TIBIA + im * im;
     double d2 = 2 * L_FEMUR * im;
     double q2 = acos(d1 / d2);
-    femur.ikSolution = 524 + radToServo(q1+q2);
+    
+    femur.ikSolution = normalizeAngle(q1 + q2 + FEMUR_ANGLE);
     
     // and tibia angle from femur...
     d1 = L_FEMUR * L_FEMUR - im * im + L_TIBIA * L_TIBIA;
     d2 = 2 * L_TIBIA * L_FEMUR;
-    tibia.ikSolution = 354 + radToServo(acos((float)d1/(float)d2)-1.57);
     
+    tibia.ikSolution = normalizeAngle(acos((float)d1/(float)d2) - TIBIA_ANGLE - FEMUR_ANGLE);   //-1.57;
 }
 
-void Leg::updateServos(GLKVector3 bodyOffset, GLKVector3 bodyRotation)
+bool Leg::newEndpoint(GLKVector4 ep)
 {
-    GLKMatrix4 coxaTransform = GLKMatrix4MakeTranslation(bodyOffset.x, bodyOffset.y, bodyOffset.z);
-    coxaTransform = GLKMatrix4Rotate(coxaTransform, bodyRotation.x, 1.0, 0.0, 0);
-    coxaTransform = GLKMatrix4Rotate(coxaTransform, bodyRotation.y, 0, 1.0, 0);
-    coxaTransform = GLKMatrix4Rotate(coxaTransform, bodyRotation.z, 0, 0, 1.0);
+//    printf("new endpoint z = %f\n", ep.z);
     
-    GLKVector4 coxaPosition = GLKMatrix4MultiplyVector4(coxaTransform, coxaOffset);
-    effector = GLKVector4Subtract(endpoint,coxaPosition);
+    GLKVector4 effector = GLKVector4Subtract(ep, transformedCoxaOrigin);
+    inverseKinematics(effector);
     
-    coxa.origin             = coxaPosition;
-//    coxa.originTransform    = coxaTransform;
+    if ((coxa.ikSolution > coxa.minAngle && coxa.ikSolution < coxa.maxAngle) &&
+        (femur.ikSolution > femur.minAngle && femur.ikSolution < femur.maxAngle) &&
+        (tibia.ikSolution > tibia.minAngle && tibia.ikSolution < tibia.maxAngle))
+    {
+        endpoint = ep;
+        return true;
+    }
+    else return false;
+}
+
+void Leg::updateServos(GLKMatrix4 bodyTransform, bool forward)
+{
+    transformedCoxaOrigin = GLKMatrix4MultiplyVector4(bodyTransform, coxaOrigin);
+    coxa.originTransform = GLKMatrix4TranslateWithVector4(bodyTransform, coxaOrigin);
     
-    inverseKinematics();
+    GLKVector4 effector = GLKVector4Subtract(endpoint, transformedCoxaOrigin);
     
-    coxa.update();
-    femur.update();
-    tibia.update();
+    if (!forward) inverseKinematics(effector);
+    
+    coxa.update(forward);
+    femur.update(forward);
+    tibia.update(forward);
 }
 
