@@ -7,6 +7,4 @@ Intel Edison - brains
 
 ArbotixM Arduino - servo control
 
-iOS App - BugMonitor
-
 iOS App - Poser
