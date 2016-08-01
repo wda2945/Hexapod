@@ -1,6 +1,6 @@
 
 
-Test90 = BT:new({
+TurnLeft90 = BT:new({
   name = 'Test.Turn.Left.90',
   tree = BT.Sequence:new({
 	name = 'Test.Seq',
@@ -15,7 +15,22 @@ Test90 = BT:new({
 ActivityList[NextActivity] =  'TurnLeft90'
 NextActivity = NextActivity + 1
 
-TestNorth = BT:new({
+TurnRight90 = BT:new({
+  name = 'Test.Turn.Right.90',
+  tree = BT.Sequence:new({
+	name = 'Test.Seq',
+		nodes = {
+			'DisableFrontCloseStop',
+			'DisableRearCloseStop',
+			'TurnRight90',
+			}
+		})
+});
+
+ActivityList[NextActivity] =  'TurnRight90'
+NextActivity = NextActivity + 1
+
+TurnNorth = BT:new({
   name = 'Test.Turn.North',
   tree = BT.Sequence:new({
 	name = 'Test.Seq',

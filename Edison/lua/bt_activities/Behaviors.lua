@@ -12,7 +12,7 @@ ReloadAllScripts = BT:new({
   tree = 'ReloadScripts'
 })
 
-ActivityList[NextActivity] =  'ReloadScripts'
+ActivityList[NextActivity] =  'ReloadAllScripts'
 NextActivity = NextActivity + 1
 
 PowerOff = BT:new({
@@ -26,5 +26,19 @@ Sleep = BT:new({
   tree = 'SystemSetResting'
 })
 
-ActivityList[NextActivity] =  'Rest'
+ActivityList[NextActivity] =  'Sleep'
+NextActivity = NextActivity + 1
+
+Sit = BT:new({
+  tree = 'Sit'
+})
+
+ActivityList[NextActivity] =  'Sit'
+NextActivity = NextActivity + 1
+
+Stand = BT:new({
+  tree = 'Stand'
+})
+
+ActivityList[NextActivity] =  'Stand'
 NextActivity = NextActivity + 1
