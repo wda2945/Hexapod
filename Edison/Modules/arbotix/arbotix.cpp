@@ -51,7 +51,10 @@ message_t lastWalkMessage;
 struct timeval lastWalkMessageTime;
 
 int arbotixWalkSpeed = 50;
-int arbotixTurnSpeed = 50;
+int arbotixTurnSpeed = 25;
+
+#define MAX_POSENAME 50
+char lastPoseName[MAX_POSENAME];
 
 //command helpers
 ActionResult_enum ActionTurn(int degrees);
@@ -87,13 +90,13 @@ int ArbotixInit() {
 #ifdef ARB_UART_RAW
 	uartContext = mraa_uart_init_raw(ARB_UART_DEVICE);
 	if (uartContext == 0) {
-		ERRORPRINT("mraa_uart_init_raw(%s) fail\n", ARB_UART_DEVICE);
+		ERRORPRINT("arbotix: mraa_uart_init_raw(%s) fail", ARB_UART_DEVICE);
 		return -1;
 	}
 #else
 	uartContext = mraa_uart_init(ARB_UART_DEVICE);
 	if (uartContext == 0) {
-		ERRORPRINT("mraa_uart_init(%i) fail\n", ARB_UART_DEVICE);
+		ERRORPRINT("arbotix: mraa_uart_init(%i) fail", ARB_UART_DEVICE);
 		return -1;
 	}
 #endif
@@ -101,7 +104,7 @@ int ArbotixInit() {
 	arbUartFD = uartContext->fd;
 
 	if (tcgetattr(arbUartFD, &settings) != 0) {
-		ERRORPRINT("tcgetattr: %s\n", strerror(errno));
+		ERRORPRINT("arbotix: tcgetattr: %s", strerror(errno));
 		return -1;
 	}
 
@@ -112,27 +115,27 @@ int ArbotixInit() {
 	settings.c_cflag = CLOCAL | CREAD | CS8;        //no modem, 8-bits
 
 	if (tcsetattr(arbUartFD, TCSANOW, &settings) != 0) {
-		ERRORPRINT("uart: tcsetattr error - %s\n", strerror(errno));
+		ERRORPRINT("arbotix: tcsetattr error - %s", strerror(errno));
 		return -1;
 	}
 
 	if (mraa_uart_set_baudrate(uartContext, ARB_UART_BAUDRATE) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("Arbotix mraa_uart_set_baudrate() fail\n");
+		ERRORPRINT("arbotix: mraa_uart_set_baudrate() fail");
 		return -1;
 	}
 	if (mraa_uart_set_mode(uartContext, 8, MRAA_UART_PARITY_NONE, 1) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("Arbotix mraa_uart_set_mode() fail\n");
+		ERRORPRINT("arbotix: mraa_uart_set_mode() fail");
 		return -1;
 	}
 	if (mraa_uart_set_flowcontrol(uartContext, false, false) != MRAA_SUCCESS)
 	{
-		ERRORPRINT("Arbotix mraa_uart_set_mode() fail\n");
+		ERRORPRINT("arbotix: mraa_uart_set_mode() fail");
 		return -1;
 	}
 
-	DEBUGPRINT("Arbotix uart %s configured\n", uartContext->path);
+	DEBUGPRINT("arbotix: uart %s configured", uartContext->path);
 
 	ps_registry_add_new("Status", "Arbotix", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
 	ps_registry_set_text("Status", "Arbotix", arbotixStateNames[arbotixState]);
@@ -141,18 +144,18 @@ int ArbotixInit() {
 	pthread_t thread;
 	int s = pthread_create(&thread, NULL, ArbRxThread, NULL);
 	if (s != 0) {
-		ERRORPRINT("Rx: pthread_create %i %s\n", s, strerror(errno));
+		ERRORPRINT("arbotix: Rx pthread_create %i %s", s, strerror(errno));
 		return errno;
 	}
 
 	//create thread for timeouts
 	s = pthread_create(&thread, NULL, ArbTimeoutThread, NULL);
 	if (s != 0) {
-		ERRORPRINT("T/O: pthread_create %i %s\n", s, strerror(errno));
+		ERRORPRINT("arbotix: T/O pthread_create %i %s", s, strerror(errno));
 		return errno;
 	}
 
-//	ps_subscribe( SYS_ACTION_TOPIC, ArbotixProcessMessage);
+	//	ps_subscribe( SYS_ACTION_TOPIC, ArbotixProcessMessage);
 
 	statusTimeout = actionTimeout = -1;
 	return 0;
@@ -160,14 +163,37 @@ int ArbotixInit() {
 
 ActionResult_enum 	lastResult = ACTION_SUCCESS;
 ArbAction_enum		lastAction = HEXAPOD_NULL;
+ArbAction_enum		timingAction = HEXAPOD_NULL;
+
+const char *arb_action_names[] = ARB_ACTION_NAMES;
 
 //call from Behavior Tree leaf (see callbacks_arbotix.cpp)
 ActionResult_enum HexapodExecuteAction(ArbAction_enum _action)
 {
 	ActionResult_enum result = ACTION_FAIL;
 
+	if (_action == HEXAPOD_STOP)
+	{
+		switch(arbotixState)
+		{
+		case ARBOTIX_WALKING:        //walking
+		case ARBOTIX_POSING:         //posing leg moving
+		case ARBOTIX_SITTING:        //in process of sitting down
+		case ARBOTIX_STANDING:
+			SendActionCommand(MSG_TYPE_HALT);
+			result = ACTION_RUNNING;
+			break;
+		case ARBOTIX_WAITING:
+			result = ACTION_RUNNING;
+			break;
+		default:
+			result = ACTION_SUCCESS;
+			break;
+		}
+	}
+
 	//check last result to see if a command is still RUNNING
-	switch (lastResult)
+	else switch (lastResult)
 	{
 	case ACTION_SUCCESS:
 	case ACTION_FAIL:
@@ -177,13 +203,14 @@ ActionResult_enum HexapodExecuteAction(ArbAction_enum _action)
 		case ARBOTIX_READY:
 		case ARBOTIX_ERROR:		//worth a try
 		{
+//			DEBUGPRINT("hex new action: %s", arb_action_names[_action]);
 			//ready for an action
 			switch (_action)
 			{
 			case HEXAPOD_SIT:
-					SendActionCommand(MSG_TYPE_SIT);
-					result = ACTION_RUNNING;
-					break;
+				SendActionCommand(MSG_TYPE_SIT);
+				result = ACTION_RUNNING;
+				break;
 			case HEXAPOD_TURN_LEFT:
 				result = ActionTurn(-RandomTurn());
 				break;
@@ -214,105 +241,289 @@ ActionResult_enum HexapodExecuteAction(ArbAction_enum _action)
 			case HEXAPOD_MOVE_BACKWARD:
 				result = ActionMove(-RandomMove());
 				break;
-			case HEXAPOD_MOVE_FORWARD_10:
-				result = ActionMove(10);
+			case HEXAPOD_MOVE_FORWARD_30:
+				result = ActionMove(30);
 				break;
-			case HEXAPOD_MOVE_BACKWARD_10:
-				result = ActionMove(-10);
+			case HEXAPOD_MOVE_BACKWARD_30:
+				result = ActionMove(-30);
 				break;
-
 			case HEXAPOD_FAST_SPEED:
 			case HEXAPOD_MEDIUM_SPEED:
 			case HEXAPOD_SLOW_SPEED:
 				//set speed
 				result = ACTION_SUCCESS;
 				break;
+			case HEXAPOD_POSE_MODE:
+				SendActionCommand(MSG_TYPE_POSEMODE);
+				result = ACTION_RUNNING;
+				break;
+			case HEXAPOD_POSE_SLOW:
+			case HEXAPOD_POSE_MEDIUM:
+			case HEXAPOD_POSE_FAST:
+			case HEXAPOD_POSE_BEAT:
+			case HEXAPOD_POSE_DOWNBEAT:
+			case HEXAPOD_POSE_UPBEAT:
+				timingAction = _action;
+				break;
 			default:
 				break;
 			}
 		}
-			break;
+		break;
 		case ARBOTIX_RELAXED:
 		case ARBOTIX_TORQUED:
 			//sitting, only permit stand
-			if (_action != HEXAPOD_STAND) result = ACTION_FAIL;
+			if (_action != HEXAPOD_STAND){
+				ERRORPRINT("hex action: fail: stand only");
+				LogError("hex action: fail: stand only");
+				result = ACTION_FAIL;
+			}
 			else
 			{
+//				DEBUGPRINT("hex action: %s", arb_action_names[_action]);
 				SendActionCommand(MSG_TYPE_STAND);
 				result = ACTION_RUNNING;
 			}
 			break;
 		default:
+			ERRORPRINT("hex action: fail: bad state");
+			LogError("hex action: fail: bad arb state");
 			result = ACTION_FAIL;
 			break;
 		}
 		break;
-	case ACTION_RUNNING:
-		//waiting for a command to complete
-		//check which, for ending condition
-		switch(lastAction)
-		{
-		case HEXAPOD_STAND:
-		{
-			//done if ready
-			switch(arbotixState)
+		case ACTION_RUNNING:
+			//waiting for a command to complete
+//			DEBUGPRINT("hex action: %s running", arb_action_names[_action]);
+			//check which, for ending condition
+			switch(lastAction)
 			{
-			case ARBOTIX_STANDING:
-			case ARBOTIX_WAITING:
-				result = ACTION_RUNNING;
+			case HEXAPOD_STAND:
+			{
+				//done if ready
+				switch(arbotixState)
+				{
+				case ARBOTIX_TORQUED:
+				case ARBOTIX_STANDING:
+				case ARBOTIX_WAITING:
+					result = ACTION_RUNNING;
+					break;
+				case ARBOTIX_READY:
+					result = ACTION_SUCCESS;
+					break;
+				default:
+					result = ACTION_FAIL;
+					break;
+				}
+			}
+			break;
+			case HEXAPOD_SIT:
+			{
+				//done if sitting
+				switch(arbotixState)
+				{
+				case ARBOTIX_SITTING:
+				case ARBOTIX_WAITING:
+					result = ACTION_RUNNING;
+					break;
+				case ARBOTIX_RELAXED:
+				case ARBOTIX_TORQUED:
+					result = ACTION_SUCCESS;
+					break;
+				default:
+					result = ACTION_FAIL;
+					break;
+				}
+			}
+			break;
+			case HEXAPOD_POSE_MODE:
+				switch(arbotixState)
+				{
+				case ARBOTIX_WAITING:
+					result = ACTION_RUNNING;
+					break;
+				case ARBOTIX_POSE_READY:
+					result = ACTION_SUCCESS;
+					break;
+				default:
+					result = ACTION_FAIL;
+					break;
+				}
 				break;
-			case ARBOTIX_READY:
-				result = ACTION_SUCCESS;
-				break;
-			default:
-				result = ACTION_FAIL;
+				default:
+				{
+					//otherwise, done when ready
+					switch(arbotixState)
+					{
+					case ARBOTIX_WALKING:
+					case ARBOTIX_STOPPING:
+					case ARBOTIX_WAITING:
+						result = ACTION_RUNNING;
+						break;
+					case ARBOTIX_READY:
+						result = ACTION_SUCCESS;
+						break;
+					default:
+						result = ACTION_FAIL;
+						break;
+					}
+				}
 				break;
 			}
-		}
-		break;
-		case HEXAPOD_SIT:
-		{
-			//done if sitting
-			switch(arbotixState)
-			{
-			case ARBOTIX_SITTING:
-			case ARBOTIX_WAITING:
-				result = ACTION_RUNNING;
-				break;
-			case ARBOTIX_RELAXED:
-			case ARBOTIX_TORQUED:
-				result = ACTION_SUCCESS;
-				break;
-			default:
-				result = ACTION_FAIL;
-				break;
-			}
-		}
-		break;
-		default:
-		{
-			//otherwise, done when ready
-			switch(arbotixState)
-			{
-			case ARBOTIX_WALKING:
-			case ARBOTIX_WAITING:
-				result = ACTION_RUNNING;
-				break;
-			case ARBOTIX_READY:
-				result = ACTION_SUCCESS;
-				break;
-			default:
-				result = ACTION_FAIL;
-				break;
-			}
-		}
-		break;
-		}
 	}
+	DEBUGPRINT("hex: action: %s : %s", arb_action_names[_action], actionResultNames[result]);
 	lastAction = _action;
 	return (lastResult = result);
 }
 
+ActionResult_enum HexapodAssumePose(const char *poseName)
+{
+	ActionResult_enum result = ACTION_FAIL;
+
+	//check last result to see if a command is still RUNNING
+	switch (lastResult)
+	{
+	case ACTION_SUCCESS:
+	case ACTION_FAIL:
+		//expecting a new action
+		switch(arbotixState)
+		{
+		case ARBOTIX_POSE_READY:
+		{
+			message_t arbMsg;
+//			DEBUGPRINT("arb: new pose: %s", poseName);
+			//ready for an action
+			strncpy(lastPoseName, poseName, MAX_POSENAME);
+
+			//open pose file and send to ArbotixM
+			//make path
+			char posePath[100];
+			snprintf(posePath, 100, "%s/%s", POSE_FOLDER, poseName);
+			FILE *poseFile = fopen(posePath, "r");
+
+			if (poseFile)
+			{
+				char *lineptr = (char*) calloc(100,1);
+				size_t n = 100;
+				ssize_t count = 0;
+				int legCount = 0;
+
+				do
+				{
+					count = getline(&lineptr, &n, poseFile);
+
+					if (count <= 0) break;
+
+					char lineType[5] = "";
+
+					sscanf(lineptr, "%1s", lineType);
+
+					if (strcmp(lineType, "R") == 0)
+					{
+						memset(&arbMsg, 0, sizeof(message_t));
+						arbMsg.msgType = MSG_TYPE_SET_POSE;
+						int legNumber {0};
+						float x {0.0};
+						float y {0.0};
+						float z {0.0};
+						if (sscanf(lineptr, "%1s %i %f %f %f ", lineType, &legNumber,
+								&x, &y, &z) == 5)
+						{
+							arbMsg.legNumber = (short int) legNumber;
+							arbMsg.x = (short int) x;
+							arbMsg.y = (short int) y;
+							arbMsg.z = (short int) z;
+
+							DEBUGPRINT("Pose: Leg %i: %f, %f, %f", legNumber, x, y, z);
+
+							SendArbMessage(&arbMsg);
+							legCount++;
+						}
+					}
+				}
+				while (count > 0);
+				free(lineptr);
+				fclose(poseFile);
+
+				if (legCount == 6)
+				{
+					//all legs sent
+					//calculate transition time
+					memset(&arbMsg, 0, sizeof(message_t));
+					arbMsg.msgType = MSG_TYPE_MOVE;
+					switch(timingAction)
+					{
+					case HEXAPOD_POSE_SLOW:
+					case HEXAPOD_POSE_MEDIUM:
+					case HEXAPOD_POSE_FAST:
+					case HEXAPOD_POSE_BEAT:
+					case HEXAPOD_POSE_DOWNBEAT:
+					case HEXAPOD_POSE_UPBEAT:
+					default:
+						arbMsg.time = 500;
+						break;
+					}
+					//start move
+					SendArbMessage(&arbMsg);
+					statusTimeout = time(NULL) + 5;			//give it 5 seconds to answer
+					ReportHexapodStatus(ARBOTIX_WAITING);
+					result = ACTION_RUNNING;
+				}
+				else
+				{
+					ERRORPRINT("arb: Bad pose file: %s", posePath);
+					result = ACTION_FAIL;
+				}
+			}
+			else
+			{
+				ERRORPRINT("arb: Failed to open: %s", posePath);
+				result = ACTION_FAIL;
+			}
+		}
+		break;
+		default:
+			result = ACTION_FAIL;
+			break;
+		}
+		break;
+		case ACTION_RUNNING:
+			//waiting for a command to complete
+//			DEBUGPRINT("hex action: %s running", poseName);
+			//check for ending condition
+			switch(arbotixState)
+			{
+			case ARBOTIX_POSING:
+			case ARBOTIX_WAITING:
+				result = ACTION_RUNNING;
+				break;
+			case ARBOTIX_POSE_READY:
+				result = ACTION_SUCCESS;
+				break;
+			default:
+				result = ACTION_FAIL;
+				break;
+			}
+			break;
+	}
+	DEBUGPRINT("hex: pose: %s : %s", poseName, actionResultNames[result]);
+
+	return (lastResult = result);
+}
+
+//helper
+void CheckAX12error(int s, int errorByte, int mask, int condition, const char *errMsg)
+{
+	if (errorByte & mask)
+	{
+		ps_set_condition(condition);
+		ERRORPRINT("arb: %s : %s", servoNames[s-1], errMsg);
+	}
+	else
+	{
+		ps_cancel_condition(condition);
+	}
+}
 
 //thread to listen for messages from ArbotixM
 void *ArbRxThread(void *a) {
@@ -323,7 +534,7 @@ void *ArbRxThread(void *a) {
 	int csum;
 	unsigned int i;
 
-	DEBUGPRINT("Arbotix Rx thread ready\n");
+	DEBUGPRINT("arbotix: Rx thread ready");
 
 	SendGetStatus();
 
@@ -340,9 +551,10 @@ void *ArbRxThread(void *a) {
 			count = read(arbUartFD, &c, 1);
 		}
 
-		DEBUGPRINT("arbotix: message start\n");
+		//		DEBUGPRINT("arbotix: message start");
 
-		count = sizeof(message_t);
+		//read the message
+		count = 8;
 		do {
 			int readchars;
 
@@ -359,125 +571,144 @@ void *ArbRxThread(void *a) {
 		}
 		while (count > 0);
 
-		if (count < 0) DEBUGPRINT("arbotix: read error: %s\n", strerror(count));
+		if (count < 0)
+		{
+			DEBUGPRINT("arb: read error %i : %s", count, strerror(errno));
+		}
 
 		if (count == 0) {
 			//whole payload read
 			msgChars =  (unsigned char *)  &arbMsg;
 
-			DEBUGPRINT("arbotix read: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
+			//read msgType
+			count = 0;
+			do {
+				count = read(arbUartFD, &arbMsg.msgType, 1);
+			}  while (count == 0 || count == EAGAIN);
 
-			//calculate checksum
-			csum = 0;
-			for (i = 0; i < sizeof(message_t); i++) {
-				csum += *msgChars++;
-			}
 			//read checksum
 			count = 0;
 			do {
 				count = read(arbUartFD, &c, 1);
 			}  while (count == 0 || count == EAGAIN);
 
-			if (count == 1 && c == (csum & 0xff)) {
-				//valid checksum
-				if (arbMsg.msgType < MSG_TYPE_COUNT)
-				{
-					DEBUGPRINT("Arbotix Rx: %s\n", msgTypes_L[arbMsg.msgType]);
+			if (count == 1)
+			{
+				//calculate checksum
+				csum = arbMsg.msgType;
+				for (i = 0; i < 8; i++) {
+					csum += msgChars[i];
 				}
-				else
-				{
-					ERRORPRINT("arbotix: bad msgType: %i -", arbMsg.msgType);
-				}
-				switch (arbMsg.msgType) {
-				case MSG_TYPE_STATUS:    //Status report payload
-					if (arbMsg.state < AX_STATE_COUNT)
-					{
-						DEBUGPRINT("arbotix: status message: %s\n", arbotixStateNames[arbMsg.state])
-					}
-					else
-					{
-						DEBUGPRINT("arbotix: bad status message: %u\n", arbMsg.state);
-					}
-					lastStatusMessage = arbMsg;
-					statusTimeout = time(NULL) + arbTimeout;
-					ReportHexapodStatus((ArbotixState_enum) arbMsg.state);
 
-					switch(arbotixState)
+				if (c == (csum & 0xff)) {
+					//valid checksum
+					if (arbMsg.msgType >= MSG_TYPE_COUNT)
 					{
-					case ARBOTIX_STOPPING:		 //in process of stopping
-					case ARBOTIX_SITTING:        //in process of sitting down
-					case ARBOTIX_STANDING:       //in process of standing
-						actionTimeout = time(NULL) + arbTimeout;
-						break;
-					default:
-						actionTimeout = -1;
-						break;
+						ERRORPRINT("arbotix: bad msgType: %i -", arbMsg.msgType);
+						continue;
 					}
-					break;
-					case MSG_TYPE_POSE:      //leg position payload
-						DEBUGPRINT("arbotix: Leg %i: X=%i Y=%i Z=%i\n", arbMsg.legNumber, arbMsg.x, arbMsg.y, arbMsg.z );
-						break;
-					case MSG_TYPE_SERVOS:    //Servo payload
-						DEBUGPRINT("arbotix: Leg %i: Coxa=%i Femur=%i Tibia=%i\n", arbMsg.legNumber, arbMsg.coxa, arbMsg.femur, arbMsg.tibia );
-						break;
-					case MSG_TYPE_MSG:       //Text message
-						DEBUGPRINT("arbotix: %4s\n", arbMsg.text);
-						break;
-					case MSG_TYPE_ODOMETRY: {
-						psMessage_t msg;
-						psInitPublish(msg, ODOMETRY);
-						msg.odometryPayload.xMovement = arbMsg.xMovement;
-						msg.odometryPayload.yMovement = arbMsg.yMovement;
-						msg.odometryPayload.zRotation = arbMsg.zRotation;
-						NewBrokerMessage(msg);
-					}
-					break;
-					case MSG_TYPE_VOLTS:     //Text message
-						lastVoltsMessage = arbMsg;
-						DEBUGPRINT("arbotix: batt: %0.1fV\n",
-								(float) (arbMsg.volts / 10));
-						break;
-					case MSG_TYPE_FAIL:
-						ERRORPRINT("arbotix: Fail: %s = %i\n", servoNames[arbMsg.servo], arbMsg.angle);
-						ReportHexapodStatus(ARBOTIX_ERROR);
-						break;
-					case MSG_TYPE_ERROR:
-					{
-						if (arbMsg.errorCode >= 0 && arbMsg.errorCode < MSG_TYPE_COUNT)
+
+					switch (arbMsg.msgType) {
+					case MSG_TYPE_STATUS:    //Status report payload
+						if (arbMsg.state < AX_STATE_COUNT)
 						{
-							if (arbMsg.errorCode < MSG_TYPE_UNKNOWN)
-							{
-								DEBUGPRINT("arbotix: Debug: %s\n", msgTypes_L[arbMsg.errorCode]);
-							}
-							else
-							{
-								DEBUGPRINT("arbotix: Error: %s\n", msgTypes_L[arbMsg.errorCode]);
-								switch(arbMsg.errorCode)
-								{
-								case LOW_VOLTAGE:
-									ReportHexapodStatus(ARBOTIX_LOWVOLTAGE);
-									break;
-								default:
-									ReportHexapodStatus(ARBOTIX_ERROR);
-									break;
-								}
-							}
+							DEBUGPRINT("arb: status message: %s", arbotixStateNames[arbMsg.state])
 						}
 						else
 						{
-							DEBUGPRINT("arbotix: debug: %i?\n", arbMsg.errorCode);
+							DEBUGPRINT("arb: bad status message: %u", arbMsg.state);
+							continue;
 						}
-					}
-					break;
-					default:
+						lastStatusMessage = arbMsg;
+						statusTimeout = time(NULL) + arbTimeout;
+						ReportHexapodStatus((ArbotixState_enum) arbMsg.state);
+
+						switch(arbotixState)
+						{
+						case ARBOTIX_STOPPING:		 //in process of stopping
+						case ARBOTIX_SITTING:        //in process of sitting down
+						case ARBOTIX_STANDING:       //in process of standing
+							actionTimeout = time(NULL) + arbTimeout;
+							break;
+						default:
+							actionTimeout = -1;
+							break;
+						}
 						break;
+						case MSG_TYPE_POSE:      //leg position payload
+							DEBUGPRINT("arb: Leg %i: X=%i Y=%i Z=%i", arbMsg.legNumber, arbMsg.x, arbMsg.y, arbMsg.z );
+							break;
+						case MSG_TYPE_SERVOS:    //Servo payload
+							DEBUGPRINT("arb: Leg %i: Coxa=%i Femur=%i Tibia=%i", arbMsg.legNumber, arbMsg.coxa, arbMsg.femur, arbMsg.tibia );
+							break;
+						case MSG_TYPE_MSG:       //Text message
+							DEBUGPRINT("arb: %4s", arbMsg.text);
+							break;
+						case MSG_TYPE_ODOMETRY: {
+							psMessage_t msg;
+							psInitPublish(msg, ODOMETRY);
+							msg.odometryPayload.xMovement = arbMsg.xMovement;
+							msg.odometryPayload.yMovement = arbMsg.yMovement;
+							msg.odometryPayload.zRotation = arbMsg.zRotation;
+							NewBrokerMessage(msg);
+							DEBUGPRINT("arb odo: x=%i, y=%i, z=%i", arbMsg.xMovement, arbMsg.yMovement, arbMsg.zRotation);
+						}
+						break;
+						case MSG_TYPE_VOLTS:     //Text message
+							lastVoltsMessage = arbMsg;
+							DEBUGPRINT("arb batt: %0.1fV",
+									(float) (arbMsg.volts / 10));
+							break;
+						case MSG_TYPE_FAIL:
+							ERRORPRINT("arb Fail: %s = %i", servoNames[arbMsg.servo], arbMsg.angle);
+							ReportHexapodStatus(ARBOTIX_ERROR);
+							break;
+						case MSG_TYPE_ERROR:
+						{
+							if (arbMsg.errorCode >= 0 && arbMsg.errorCode < MSG_TYPE_COUNT)
+							{
+								if (arbMsg.errorCode < MSG_TYPE_UNKNOWN)
+								{
+									DEBUGPRINT("arbotix: Debug: %s", msgTypes_L[arbMsg.errorCode]);
+								}
+								else
+								{
+									DEBUGPRINT("arbotix: Error: %s", msgTypes_L[arbMsg.errorCode]);
+									switch(arbMsg.errorCode)
+									{
+									case LOW_VOLTAGE:
+										ReportHexapodStatus(ARBOTIX_LOWVOLTAGE);
+										break;
+									case SERVO_ERROR:
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_VOLTAGE, AX12_VOLTAGE ,"AX12.Voltage");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_ANGLE_LIMIT, AX12_ANGLE_LIMIT ,"AX12.Angle.Limit");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_OVERHEATING, AX12_OVERHEATING ,"AX12.Overheating");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_RANGE, AX12_RANGE ,"AX12.Range");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_CHECKSUM, AX12_CHECKSUM  ,"AX12.Checksum");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_OVERLOAD, AX12_OVERLOAD ,"AX12.Overload");
+										CheckAX12error(arbMsg.error1, arbMsg.error2, ERR_INSTRUCTION, AX12_INSTRUCTION ,"AX12.Instruction");
+										break;
+									default:
+										ReportHexapodStatus(ARBOTIX_ERROR);
+										break;
+									}
+								}
+							}
+							else
+							{
+								DEBUGPRINT("arbotix: debug: %i?", arbMsg.errorCode);
+							}
+						}
+						break;
+						default:
+							DEBUGPRINT("arbotix: Rx: %s", msgTypes_L[arbMsg.msgType]);
+							break;
+					}
 				}
-			}
-			else
-			{
-				msgChars =  (unsigned char *)  &arbMsg;
-				ERRORPRINT("arbotix checksum! %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
-				ERRORPRINT("arbotix: sum=%x. Expected %02x, got %02x\n", csum, (csum & 0xff), c);
+				else
+				{
+					ERRORPRINT("arbotix: sum=%x. Expected %02x, got %02x", csum, (csum & 0xff), c);
+				}
 			}
 		}
 	}
@@ -487,7 +718,7 @@ void *ArbRxThread(void *a) {
 //thread to check for ArbotixM command timeouts
 void *ArbTimeoutThread(void *a)
 {
-	DEBUGPRINT("arbotix Timeout thread started\n");
+	DEBUGPRINT("arbotix Timeout thread started");
 
 	while (1)
 	{
@@ -501,6 +732,11 @@ void *ArbTimeoutThread(void *a)
 			{
 				ERRORPRINT("arbotix: Timeout");
 				ReportHexapodStatus(ARBOTIX_TIMEOUT);
+				SendGetStatus();
+			}
+			else if (statusTimeout < time(NULL))
+			{
+				DEBUGPRINT("arbotix: timeout GetStatus");
 				SendGetStatus();
 			}
 			break;
@@ -544,7 +780,10 @@ ActionResult_enum ActionTurn(int degrees)
 	memset(&arbMsg, 0, sizeof(message_t));
 	arbMsg.msgType = MSG_TYPE_WALK;
 	arbMsg.zRotateSpeed = (degrees > 0 ? arbotixTurnSpeed : -arbotixTurnSpeed);
-	arbMsg.steps = abs(degrees / degreesPerStep);
+
+	arbMsg.steps = abs(6 * degrees / arbotixTurnSpeed);	//cycle time = 2 secs, 12 steps per cycle
+
+	if (arbMsg.steps == 0) return ACTION_SUCCESS;
 
 	SendArbMessage(&arbMsg);
 	statusTimeout = time(NULL) + 2;		//give it 2 seconds to answer
@@ -563,7 +802,7 @@ ActionResult_enum ActionTurnTo(int degrees)
 		return ACTION_FAIL;
 	}
 	int heading = 0;
-	if (ps_registry_get_int("pose", "heading", &heading) != PS_OK)
+	if (ps_registry_get_int("Pose", "Heading", &heading) != PS_OK)
 	{
 		lastLuaCallReason = "no heading";
 		return ACTION_FAIL;
@@ -571,16 +810,19 @@ ActionResult_enum ActionTurnTo(int degrees)
 
 	return ActionTurn(degrees - heading);
 }
-ActionResult_enum ActionMove(int cms)
+//move X cms
+ActionResult_enum ActionMove(int mm)
 {
-	if (abs(cms) < 5) return ACTION_SUCCESS;
+	if (abs(mm) < 10) return ACTION_SUCCESS;
 
 	message_t arbMsg;
 	memset(&arbMsg, 0, sizeof(message_t));
 
 	arbMsg.msgType = MSG_TYPE_WALK;
-	arbMsg.xSpeed = (cms > 0 ? arbotixWalkSpeed : -arbotixWalkSpeed);
-	arbMsg.steps = abs(cms / cmPerStep);
+	arbMsg.xSpeed = (mm > 0 ? arbotixWalkSpeed : -arbotixWalkSpeed);
+	arbMsg.steps = abs(mm / 10);
+
+	if (arbMsg.steps == 0) return ACTION_SUCCESS;
 
 	SendArbMessage(&arbMsg);
 	statusTimeout = time(NULL) + 2;		//give it 2 seconds to answer
@@ -605,37 +847,43 @@ int RandomMove()
 pthread_mutex_t	arbMsgMtx = PTHREAD_MUTEX_INITIALIZER;
 void SendArbMessage(message_t *arbMsg) {
 
-	int csum = 0;
+	int csum = arbMsg->msgType;
 	unsigned int i;
 	unsigned char *msgChars = (unsigned char*) arbMsg;
 
-	DEBUGPRINT("arbotix write: %02x %02x %02x %02x %02x %02x %02x %02x %02x", msgChars[0], msgChars[1], msgChars[2], msgChars[3], msgChars[4], msgChars[5], msgChars[6], msgChars[7], msgChars[8]);
+	for (i=0; i<8; i++)
+	{
+		csum += msgChars[i];
+	}
+
+	DEBUGPRINT("arbotix Tx: %02x %02x %02x %02x %02x %02x %02x %02x %02x | %02x",
+			msgChars[0], msgChars[1], msgChars[2], msgChars[3],
+			msgChars[4], msgChars[5], msgChars[6], msgChars[7], arbMsg->msgType, csum);
 
 	//critical section
 	int m = pthread_mutex_lock(&arbMsgMtx);
 	if (m != 0)
 	{
-		ERRORPRINT("arbMsgMtx lock %i", m);
+		ERRORPRINT("arbotix: arbMsgMtx lock %i", m);
 	}
 
 	writeByte(MSG_START);
 
-	for (i=0; i<sizeof(message_t); i++)
+	for (i=0; i<8; i++)
 	{
-		writeByte(*msgChars);
-		csum += *msgChars++;
+		writeByte(msgChars[i]);
 	}
-
+	writeByte(arbMsg->msgType);
 	writeByte(csum & 0xff);
 
 	m = pthread_mutex_unlock(&arbMsgMtx);
 	if (m != 0)
 	{
-		ERRORPRINT("arbMsgMtx unlock %i", m);
+		ERRORPRINT("arbotix: arbMsgMtx unlock %i", m);
 	}
 	//end critical section
 
-	DEBUGPRINT("Arb Tx: %s", msgTypes_L[arbMsg->msgType]);
+	DEBUGPRINT("arbotix: Tx: %s", msgTypes_L[arbMsg->msgType]);
 }
 
 //functions to send various messages to the ArbotixM
@@ -652,7 +900,8 @@ void SendActionCommand(msgType_enum m) {
 	memset(&arbMsg, 0, sizeof(message_t));
 	arbMsg.msgType = m;
 	SendArbMessage(&arbMsg);
-	actionTimeout = time(NULL) + arbTimeout;		//give it 5 seconds or so
+	statusTimeout = time(NULL) + 2;		//give it 2 seconds to answer
+	ReportHexapodStatus(ARBOTIX_WAITING);
 }
 //send GET_POSE command plus legNumber
 void SendGetPose(int leg) {
@@ -669,17 +918,18 @@ void ReportHexapodStatus(ArbotixState_enum s) {
 	if (arbotixState != s)
 	{
 		ps_registry_set_text("Status", "Arbotix", arbotixStateNames[s]);
+		LogInfo("status: %s", arbotixStateNames[s]);
 
 		//critical section
 		int m = pthread_mutex_lock(&arbStateMtx);
 		if (m != 0)
 		{
-			ERRORPRINT("arbStateMtx lock %i", m);
+			ERRORPRINT("arbotix: arbStateMtx lock %i", m);
 		}
 
 		arbotixState = s;
 
-		DEBUGPRINT("State %s", arbotixStateNames[s]);
+		DEBUGPRINT("arbotix: State %s", arbotixStateNames[s]);
 
 		switch (arbotixState)
 		{
@@ -724,7 +974,7 @@ void ReportHexapodStatus(ArbotixState_enum s) {
 		m = pthread_mutex_unlock(&arbStateMtx);
 		if (m != 0)
 		{
-			ERRORPRINT("arbStateMtx unlock %i", m);
+			ERRORPRINT("arbotix: arbStateMtx unlock %i", m);
 		}
 		//end critical section
 	}

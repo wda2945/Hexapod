@@ -293,13 +293,13 @@ void doIK(){
   else{
     ServoFail(LMT, servo);
   }
-  stepNumber = (stepNumber+1);
 
-  if (stepNumber >= stepsInCycle)
+  if (++stepNumber >= stepsInCycle)
   {
-    endOfCycle = 1;
     stepNumber = 0;
   }
+
+  EndOfStep();
 }
 
 

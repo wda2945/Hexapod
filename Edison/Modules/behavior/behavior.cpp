@@ -43,11 +43,11 @@ int BehaviorInit()
 	int result = InitScriptingSystem();
 	if (result == 0)
 	{
-		LogInfo("Script system initialized\n");
+		LogInfo("Script system initialized");
 	}
 	else
 	{
-		ERRORPRINT("Script system init fail: %i\n", result);
+		ERRORPRINT("Script system init fail: %i", result);
 		return -1;
 	}
 
@@ -56,14 +56,14 @@ int BehaviorInit()
 	s = pthread_create(&thread, NULL, ScriptThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("ScriptThread create - %i\n", s);
+		ERRORPRINT("ScriptThread create - %i", s);
 		return -1;
 	}
 
 	s = pthread_create(&thread, NULL, BehaviorMessageThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("BehaviorMessageThread create - %i\n", s);
+		ERRORPRINT("BehaviorMessageThread create - %i", s);
 		return -1;
 	}
 
@@ -81,7 +81,7 @@ void BehaviorProcessMessage(const void *_msg, int len)
 //thread to receive messages and update lua blackboard
 void *BehaviorMessageThread(void *arg)
 {
-	LogInfo("Behavior message thread started\n");
+	LogInfo("Behavior message thread started");
 
 	while (1)
 	{
@@ -95,7 +95,7 @@ void *BehaviorMessageThread(void *arg)
 				int s = pthread_mutex_lock(&luaMtx);
 				if (s != 0)
 				{
-					ERRORPRINT("BT: lua mutex lock %i\n", s);
+					ERRORPRINT("BT: lua mutex lock %i", s);
 				}
 
 				ScriptProcessMessage(msg);	//update lua globals as necessary
@@ -103,7 +103,7 @@ void *BehaviorMessageThread(void *arg)
 				s = pthread_mutex_unlock(&luaMtx);
 				if (s != 0)
 				{
-					ERRORPRINT("BT: lua mutex unlock %i\n", s);
+					ERRORPRINT("BT: lua mutex unlock %i", s);
 				}
 				//end critical section
 			}
@@ -118,7 +118,7 @@ void *BehaviorMessageThread(void *arg)
 void *ScriptThread(void *arg)
 {
 
-	LogInfo("Script update thread started\n");
+	LogInfo("Script update thread started");
 
 	while (1)
 	{
@@ -126,7 +126,7 @@ void *ScriptThread(void *arg)
 		int s = pthread_mutex_lock(&luaMtx);
 		if (s != 0)
 		{
-			ERRORPRINT("BT: lua mutex lock %i\n", s);
+			ERRORPRINT("BT: lua mutex lock %i", s);
 		}
 
 		InvokeUpdate();
@@ -134,7 +134,7 @@ void *ScriptThread(void *arg)
 		s = pthread_mutex_unlock(&luaMtx);
 		if (s != 0)
 		{
-			ERRORPRINT("BT: lua mutex unlock %i\n", s);
+			ERRORPRINT("BT: lua mutex unlock %i", s);
 		}
 		//end critical section
 
@@ -150,7 +150,7 @@ void RegisterAvailableScripts()
 	int s = pthread_mutex_lock(&luaMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("BT: lua mutex lock %i\n", s);
+		ERRORPRINT("BT: lua mutex lock %i", s);
 	}
 
 	AvailableScripts();
@@ -158,7 +158,7 @@ void RegisterAvailableScripts()
 	s = pthread_mutex_unlock(&luaMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("BT: lua mutex unlock %i\n", s);
+		ERRORPRINT("BT: lua mutex unlock %i", s);
 	}
 	//end critical section
 }
@@ -187,15 +187,15 @@ int actionReply(lua_State *L, ActionResult_enum result)
 	switch (result)
 	{
 	case ACTION_SUCCESS:
-		DEBUGPRINT(".. success\n")
+		DEBUGPRINT(".. success")
 		return success(L);
 		break;
 	case ACTION_RUNNING:
-		DEBUGPRINT(".. running\n")
+		DEBUGPRINT(".. running")
 		return running(L);
 		break;
 	default:
-		DEBUGPRINT(".. fail\n")
+		DEBUGPRINT(".. fail")
 		return fail(L);
 		break;
 	}
@@ -203,12 +203,12 @@ int actionReply(lua_State *L, ActionResult_enum result)
 
 int ChangeOption(lua_State *L, const char *name, int value)
 {
-	ps_registry_set_bool("options", name, value);
+	ps_registry_set_bool("Options", name, value);
 	return success(L);
 }
 
 int ChangeSetting(lua_State *L, const char *name, float value)
 {
-	ps_registry_set_real("settings", name, value);
+	ps_registry_set_real("Settings", name, value);
 	return success(L);
 }

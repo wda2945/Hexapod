@@ -27,6 +27,7 @@
 //LUA leaf actions for hexapod
 
 typedef enum {
+	Stop,
 	Stand,
 	Sit,
 	Turn,
@@ -40,11 +41,18 @@ typedef enum {
 	TurnRight90,
 	MoveForward,
 	MoveBackward,
-	MoveForward10,
-	MoveBackward10,
+	MoveForward30,
+	MoveBackward30,
 	SetFastSpeed,
 	SetMediumSpeed,
 	SetLowSpeed,
+	SetPoseMode,
+	SetPoseSlow,
+	SetPoseMedium,
+	SetPoseFast,
+	SetPoseBeat,
+	SetPoseDownbeat,
+	SetPoseUpbeat,
 	EnableFrontCloseStop,
 	DisableFrontCloseStop,
 	EnableRearCloseStop,
@@ -57,6 +65,7 @@ typedef enum {
 } ArbotixAction_enum;
 
 static const char *arbotixActionList[] = {
+		"Stop",
 		"Stand",
 		"Sit",
 		"Turn",
@@ -70,11 +79,18 @@ static const char *arbotixActionList[] = {
 		"TurnRight90",
 		"MoveForward",
 		"MoveBackward",
-		"MoveForward10",
-		"MoveBackward10",
+		"MoveForward30",
+		"MoveBackward30",
 		"SetFastSpeed",
 		"SetMediumSpeed",
 		"SetLowSpeed",
+		"SetPoseMode",
+		"SetPoseSlow",
+		"SetPoseMedium",
+		"SetPoseFast",
+		"SetPoseBeat",
+		"SetPoseDownbeat",
+		"SetPoseUpbeat",
 		"EnableFrontCloseStop",
 		"DisableFrontCloseStop",
 		"EnableRearCloseStop",
@@ -87,12 +103,16 @@ static const char *arbotixActionList[] = {
 
 //actual leaf node
 static int luaHexapodAction(lua_State *L);
+static int luaHexapodPose(lua_State *L);
 
 int InitHexapodCallbacks(lua_State *L)
 {
 	int i, table;
 	lua_pushcfunction(L, luaHexapodAction);
 	lua_setglobal(L, "HexapodAction");
+
+	lua_pushcfunction(L, luaHexapodPose);
+	lua_setglobal(L, "HexapodPose");
 
 	lua_createtable(L, 0, HEXAPOD_ACTION_COUNT);
 	table = lua_gettop(L);
@@ -107,16 +127,24 @@ int InitHexapodCallbacks(lua_State *L)
 	return 0;
 }
 
+static int luaHexapodPose(lua_State *L)
+{
+	return HexapodAssumePose(lua_tostring(L, 1));
+}
+
 static int luaHexapodAction(lua_State *L)
 {
 	ArbotixAction_enum actionCode 	= (ArbotixAction_enum) lua_tointeger(L, 1);
 
 	lastLuaCall = arbotixActionList[actionCode];
 
-	LogRoutine("ArbotixAction: %s ...\n", lastLuaCall.c_str());
+	DEBUGPRINT("Hexapod Action: %s ...", lastLuaCall.c_str());
 
 	switch (actionCode)
 	{
+	case Stop:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_STOP));
+		break;
 	case Stand:
 		return actionReply(L, HexapodExecuteAction(HEXAPOD_STAND));
 		break;
@@ -159,11 +187,11 @@ static int luaHexapodAction(lua_State *L)
 	case MoveBackward:
 		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_BACKWARD));
 		break;
-	case MoveForward10:
-		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_FORWARD_10));
+	case MoveForward30:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_FORWARD_30));
 		break;
-	case MoveBackward10:
-		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_BACKWARD_10));
+	case MoveBackward30:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_BACKWARD_30));
 		break;
 	case SetFastSpeed:
 		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_BACKWARD));
@@ -173,6 +201,27 @@ static int luaHexapodAction(lua_State *L)
 		break;
 	case SetLowSpeed:
 		return actionReply(L, HexapodExecuteAction(HEXAPOD_MOVE_BACKWARD));
+		break;
+	case SetPoseMode:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_MODE));
+		break;
+	case SetPoseSlow:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_SLOW));
+		break;
+	case SetPoseMedium:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_MEDIUM));
+		break;
+	case SetPoseFast:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_FAST));
+		break;
+	case SetPoseBeat:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_BEAT));
+		break;
+	case SetPoseDownbeat:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_DOWNBEAT));
+		break;
+	case SetPoseUpbeat:
+		return actionReply(L, HexapodExecuteAction(HEXAPOD_POSE_UPBEAT));
 		break;
 	case EnableFrontCloseStop:
 		movementAbortFlags |= ENABLE_FRONT_CLOSE_ABORT;
@@ -208,7 +257,7 @@ static int luaHexapodAction(lua_State *L)
 		break;
 
 	default:
-		LogError("Arb action: %i\n", actionCode);
+		ERRORPRINT("Arb action: %i", actionCode);
 		return fail(L);
 		break;
 	}

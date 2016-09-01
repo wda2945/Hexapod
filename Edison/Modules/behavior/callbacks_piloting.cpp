@@ -77,7 +77,7 @@ static int PilotAction(lua_State *L)
 
 	lastLuaCall = pilotingActionList[actionCode];
 
-	LogRoutine("PilotAction: %s ...\n", lastLuaCall.c_str());
+	DEBUGPRINT("Pilot Action: %s ...", lastLuaCall.c_str());
 
 	switch (actionCode)
 	{
@@ -101,7 +101,7 @@ static int PilotAction(lua_State *L)
 		break;
 
 	default:
-		LogError("Pilot action: %i\n", actionCode);
+		ERRORPRINT("Pilot action: %i", actionCode);
 		return fail(L);
 		break;
 	}

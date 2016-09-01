@@ -25,7 +25,7 @@ typedef enum {
 
 #undef EVENT_MACRO
 
-extern char *eventNames[];
+extern const char *eventNames[];
 
 #define CONDITION_MACRO(e, n) e,
 
@@ -36,7 +36,7 @@ typedef enum {
 
 #undef CONDITION_MACRO
 
-extern char *conditionNames[];
+extern const char *conditionNames[];
 
 //other name lookups
 //extern char *batteryStateNames[BATTERY_STATUS_COUNT];

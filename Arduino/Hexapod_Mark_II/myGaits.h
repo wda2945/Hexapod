@@ -2,10 +2,11 @@
 #ifndef MYGAIT_H
 #define MYGAIT_H
 
-#define STAND_FRAMES1   90  //prep
-#define STAND_FRAMES2   60  //up
-#define SIT_FRAMES1     5   //prep
-#define SIT_FRAMES2     60  //down
+#define STAND_FRAMES1   30  //prep
+#define STAND_FRAMES2   30  //up
+#define SIT_FRAMES1     15   //prep
+#define SIT_FRAMES2     30  //down
+#define STANCE_FRAMES   15
 
 
 extern int sitHeight, sitSpread;
@@ -86,7 +87,21 @@ ik_req_t MyGaitGen(int leg){
     }
     else if (stepNumber == 2) {
       gaits[leg].z = 0; 
-      tranTime = ((STAND_FRAMES2*12)-1);
+      tranTime = ((STAND_FRAMES2*BIOLOID_FRAME_LENGTH)-1);
+    }
+  }
+  else   if( currentGait == STANCE )
+  {
+    if (stepNumber == gaitLegNo[leg]){
+      // leg up, middle position
+      gaits[leg].x = 0;
+      gaits[leg].y = 0;
+      gaits[leg].z = -liftHeight;
+      gaits[leg].r = 0;
+    }
+    else if (stepNumber == gaitLegNo[leg]+1){
+      // leg down position              
+      gaits[leg].z = 0;
     }
   }
   return gaits[leg];
@@ -110,7 +125,7 @@ void MyGaitSelect(int GaitType){
     gaitLegNo[LEFT_FRONT] = 6;
     gaitLegNo[RIGHT_REAR] = 8;
     gaitLegNo[RIGHT_MIDDLE] = 10;
-    tranTime = ((SIT_FRAMES1*12)-1);
+    tranTime = ((SIT_FRAMES1*BIOLOID_FRAME_LENGTH)-1);
    stepsInCycle = 14;
   }
   else if (GaitType == STANDUP) 
@@ -123,8 +138,20 @@ void MyGaitSelect(int GaitType){
     gaitLegNo[LEFT_FRONT] = 0;
     gaitLegNo[RIGHT_REAR] = 0;
     gaitLegNo[RIGHT_MIDDLE] = 0;
-   tranTime = ((STAND_FRAMES1*12)-1);
-   stepsInCycle = 4;
+    tranTime = ((STAND_FRAMES1*BIOLOID_FRAME_LENGTH)-1);
+    stepsInCycle = 4;
+  }
+  else if (GaitType == STANCE){        
+    gaitGen   = &MyGaitGen;
+    gaitSetup = &DefaultGaitSetup;
+    gaitLegNo[RIGHT_FRONT] = 0;
+    gaitLegNo[LEFT_REAR] = 2;
+    gaitLegNo[LEFT_MIDDLE] = 4;
+    gaitLegNo[LEFT_FRONT] = 6;
+    gaitLegNo[RIGHT_REAR] = 8;
+    gaitLegNo[RIGHT_MIDDLE] = 10;
+    tranTime = ((STANCE_FRAMES*BIOLOID_FRAME_LENGTH)-1);
+    stepsInCycle = 12;
   }
 
   cycleTime = (stepsInCycle*tranTime)/1000.0;

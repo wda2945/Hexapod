@@ -43,7 +43,7 @@ using namespace std;
 
 FILE *mainDebugFile;
 
-#define PROCESS_NAME "overmind"
+#define PROCESS_NAME "hexapod"
 
 bool initComplete = false;
 
@@ -83,8 +83,12 @@ int main()
 	//start the log
 	ps_syslog_linux syslog;
 
-	//start the socket server with ping
-	ps_socket_server appConnection(4000, nullptr);
+	//start the socket server
+	ps_socket_server appConnection(4000, 5000);
+
+	ps_register_event_names(eventNames, EVENT_COUNT);
+	ps_register_condition_names(conditionNames, CONDITIONS_COUNT);
+	ps_register_topic_names(psTopicNames, PS_TOPIC_COUNT);
 
 	//init subsystems
 
@@ -173,7 +177,7 @@ int main()
 	{
 		ps_set_condition(INIT_ERROR);
 		LogError("Hexapod Init Fail '%s'", initFail.c_str());
-		sleep(5);
+		sleep(10);
 		return -1;
 	}
 
@@ -325,7 +329,7 @@ void KillAllOthers(string name)
 		if (*pids != getpid())	//don't kill me
 		{
 			kill(*pids, SIGTERM);
-			DEBUGPRINT("Killed pid %i (%s)\n", *pids, name.c_str());
+			DEBUGPRINT("Killed pid %i (%s)", *pids, name.c_str());
 		}
 		pids++;
 	}

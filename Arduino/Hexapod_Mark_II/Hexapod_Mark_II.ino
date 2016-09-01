@@ -6,8 +6,10 @@
  *
  */
 #define VOLT_CHECK      //halt if voltage too low
-#define NO_TIMEOUT      //disable message timeout stop
+//#define NO_TIMEOUT      //disable message timeout stop
 //#define SIMPLE_COMMANDS  //use one letter test commands
+
+#define LOW_VOLTAGE_LIMIT 100
 
 #include <ctype.h>
 #include <ax12.h>
@@ -16,9 +18,15 @@
 #include "hex_msg.h"    //serial message definitions
 
 #ifdef SIMPLE_COMMANDS
+#define DEBUG(t) Serial.println(t);
+
 static char *messageNames[] = DEBUG_MSG_L;
 static char *stateNames[] = AX_STATE_NAMES;
 static char *legNames[] = LEG_NAMES;
+static char *servoNames[] = SERVO_NAMES;
+
+#else
+#define DEBUG(t)
 #endif
 
 //added functions
@@ -38,12 +46,14 @@ void SendReg(int reg, int val);
 void SendOdo(int x, int y, int r);
 
 int CheckVoltage();
-int SendVoltage();
+int SendVoltage(int volts);
 void ErrorMessage(msgType_enum m);
+int CheckForServoError();
 
 //gait code extension
 void MyGaitSelect(int GaitType);
 void FindServoNumbers(char legNumber);
+
 //FK function to determine endpoint from servo angles
 ik_req_t legFK(char legNr, int c, int f, int t);
 
@@ -63,22 +73,22 @@ struct ServoStruct {
 } 
 resetServoPositions[6] = {
   { 
-    500, 600, 500                    }
+    500, 600, 500                                }
   ,        //RF
   { 
-    500, 600, 500                    }
+    500, 600, 500                                }
   ,        //RR
   { 
-    500, 400, 500                    }
+    500, 400, 500                                }
   ,        //LF
   { 
-    500, 400, 500                    }
+    500, 400, 500                                }
   ,        //LR
   { 
-    500, 600, 500                    }
+    500, 600, 500                                }
   ,        //RM
   { 
-    500, 400, 500                    }         //LM
+    500, 400, 500                                }         //LM
 };
 
 int              endOfCycle;    //to flag end of single-shot actions
@@ -93,17 +103,20 @@ msgType_enum     lastCommand = MSG_TYPE_NONE;
 unsigned long    msgTime;
 char             defaultGait;
 
+#define SMART_BASIC_SEL 0  //pin for FTDI Smart Basic Select
+
 void setup()
 {
-  message_t msg;
   char volts[5];
 
-  pinMode(0,OUTPUT);
-  delay(100);
-  
+  delay(2000);
+
+  pinMode(SMART_BASIC_SEL, OUTPUT);
+  digitalWrite(SMART_BASIC_SEL, HIGH);
+
   // setup IK engine
-  bioloid.poseSize = 18;
-  bioloid.readPose();
+  bioloid.poseSize = 18;      //18 servos
+  bioloid.readPose();         //read pose from servos
   setupIK();
   gaitSelect(AMBLE_SMOOTH);
   defaultGait = AMBLE_SMOOTH;
@@ -113,7 +126,7 @@ void setup()
 
   // wait, then check the voltage (LiPO safety)
   delay (1000);
-  SendVoltage();
+  CheckVoltage();
 
   if (lowVoltage)
   {
@@ -124,13 +137,14 @@ void setup()
     while(lowVoltage)
     {
       delay(5000);
-      ErrorMessage(LOW_VOLTAGE);
-      SendVoltage();
+      CheckVoltage();
     }
 #endif
   }
-  SendStatus(AX_TORQUED);
+  TorqueOffAll();
 }
+
+//process any message in the serial buffer
 int CheckForMessage()
 {
 #ifdef SIMPLE_COMMANDS
@@ -157,6 +171,7 @@ int CheckForMessage()
       message.xSpeed = 50;
       message.ySpeed = 0;
       message.zRotateSpeed = 0;
+      message.steps = 10;
       return 1;
       break;   
     case 'T':    //turn
@@ -165,6 +180,7 @@ int CheckForMessage()
       message.xSpeed = 0;
       message.ySpeed = 0;
       message.zRotateSpeed = 20;
+      message.steps = 10;
       return 1;
       break;
     case 'h':
@@ -188,6 +204,21 @@ int CheckForMessage()
       return 1; 
 
       break;
+    case 'E':    //status
+    case 'e':
+      {
+        int i;
+        for (i=1; i<=18; i++)
+        {
+          int voltage = (ax12GetRegister (i, AX_PRESENT_VOLTAGE, 1));
+          int error = ax12GetLastError();
+          Serial.print(i); 
+          Serial.print(" = ");
+          Serial.println(error, HEX);
+        }
+      }
+      return 0;
+      break;
     default:
       message.msgType = MSG_TYPE_NONE;
       return 0;
@@ -202,23 +233,36 @@ int CheckForMessage()
     {
       int i;
       int csum = 0;
-      char c;
+      unsigned char c;
       unsigned char *cmsg = (unsigned char *) &message;
-      for (i=0; i< MSG_LEN; i++)
+      for (i=0; i< 8; i++)
       {
         //read the message
         c = Serial.read();
         cmsg[i] = c;
         csum += c;
       }
+
+      message.msgType = Serial.read();
+      csum += message.msgType;
+
       //check checksum
-      if (Serial.read() == (csum & 0xff))
+      c = Serial.read();
+      if (c == (csum & 0xff))
       {
         return 1;
       }
       else
       {
-        ErrorMessage(BAD_CHECKSUM);    //message ignored
+        message_t msg;
+        memset(&msg, 0, MSG_LEN);
+        msg.msgType = MSG_TYPE_ERROR;
+        msg.errorCode = (unsigned short int) BAD_CHECKSUM;
+        msg.errorState = (unsigned short int) axStatus;
+        msg.error1 = c;
+        msg.error2 = csum;
+        SendMessage(&msg);
+        //message ignored
       }
     }
   }
@@ -229,34 +273,19 @@ void loop(){
   // first take commands
   if (CheckForMessage())
   {
+    //received message is in message
     msgTime = millis();
+
     //check for valid message context
     switch(axStatus)
     {
     case AX_RELAXED:  //torque off
-      switch (message.msgType) {
-      case MSG_TYPE_GETSTATUS:          
-      case MSG_TYPE_GAIT:
-      case MSG_TYPE_TORQUE:	  //no payload
-      case MSG_TYPE_GET_POSE:  //legNumber
-      case MSG_TYPE_READ_REG:  //AX12 reg payload
-      case MSG_TYPE_WRITE_REG:  //AX12 reg payload
-      case MSG_TYPE_WRITE_REG2:  //AX12 reg payload (2 byte)
-        //OK
-        break;
-      default:
-        ErrorMessage(BAD_CONTEXT);
-        return;
-        break;
-      }
-      break;
     case AX_TORQUED:    //powered up - sitting down, torqued
       switch (message.msgType) {
       case MSG_TYPE_GAIT:
       case MSG_TYPE_RELAX:      
       case MSG_TYPE_STAND:     //no payload
       case MSG_TYPE_GETSTATUS: //no payload
-      case MSG_TYPE_POSE:      //no payload
       case MSG_TYPE_GET_POSE:  //legNumber
       case MSG_TYPE_READ_REG:  //AX12 reg payload
       case MSG_TYPE_WRITE_REG:  //AX12 reg payload
@@ -279,7 +308,7 @@ void loop(){
       case MSG_TYPE_BODY:      //x:y:z payload
       case MSG_TYPE_ROTATE:    //x:y:z payload (z not used)
       case MSG_TYPE_SIT:        //no payload
-      case MSG_TYPE_POSE:      //no payload
+      case MSG_TYPE_POSEMODE:   //no payload
       case MSG_TYPE_GET_POSE:  //legNumber
       case MSG_TYPE_READ_REG:  //AX12 reg payload
       case MSG_TYPE_WRITE_REG:  //AX12 reg payload
@@ -313,6 +342,7 @@ void loop(){
     case AX_STOPPING:
     case AX_SITTING:
     case AX_STANDING:
+    case AX_POSING:
       switch (message.msgType) {
       case MSG_TYPE_GETSTATUS: //no payload
       case MSG_TYPE_READ_REG:  //AX12 reg payload
@@ -326,14 +356,19 @@ void loop(){
         break;
       }
       break;
-    case AX_POSING:
+    case AX_POSE_READY:
       switch (message.msgType) {
-      case MSG_TYPE_HALT:      //no payload
       case MSG_TYPE_GAIT:
+      case MSG_TYPE_HALT:      //no payload
       case MSG_TYPE_GETSTATUS: //no payload
+      case MSG_TYPE_WALK:      //walk payload
+      case MSG_TYPE_BODY:      //x:y:z payload
+      case MSG_TYPE_ROTATE:    //x:y:z payload (z not used)
+      case MSG_TYPE_SIT:        //no payload      case MSG_TYPE_GETSTATUS: //no payload
       case MSG_TYPE_GET_POSE:  //legNumber
       case MSG_TYPE_SET_SERVOS: //servos payload
       case MSG_TYPE_SET_POSE:  //set pose payload
+      case MSG_TYPE_POSEMODE:   //no payload
       case MSG_TYPE_MOVE:      //no payload
       case MSG_TYPE_READ_REG:  //AX12 reg payload
       case MSG_TYPE_WRITE_REG:  //AX12 reg payload
@@ -355,74 +390,52 @@ void loop(){
       Xspeed = Yspeed = Rspeed = 0;
       if (axStatus == AX_WALKING)
       {
-        SendStatus(AX_STOPPING);
-      }
-      else
-      {
-        SendStatus(AX_READY);
-      }      
+        SendStatus(AX_STOPPING); 
+      }    
       break;
     case MSG_TYPE_GETSTATUS:
       SendStatus(axStatus);
+      CheckForServoError();
       break;
     case MSG_TYPE_WALK:
-      if (lowVoltage)
-      {
-        ErrorMessage(LOW_VOLTAGE);
-        SendVoltage();
-      }
-      else
       {
         Xspeed = message.xSpeed;      //mm per sec
         Yspeed = message.ySpeed;      //mm per sec
-        Rspeed = 3.14159f * message.zRotateSpeed / 180.0f;    //radians per sec
-        Serial.print("Rspeed ");
-        Serial.println(Rspeed);
-        if (!MOVING)
-        { 
-          if (axStatus == AX_WALKING)
-          {
-            SendStatus(AX_STOPPING);
-          }
-          else
-          {
-            SendStatus(AX_READY);
-          } 
-        }
-        else
+        Rspeed = 3.14159f * message.zRotateSpeed / 180.0f;    //degrees per sec to radians per sec
+        if (MOVING)
         {
           //calculate speed factors
-          int maxSpeed  = abs(max(Xspeed, Yspeed));                //start with the higher speed
+          int maxSpeed  = max(abs(Xspeed), abs(Yspeed));    //start with the higher speed
           if (maxSpeed > 50) maxSpeed = 50;
-          int nomStride = (30 + maxSpeed);                //take a starting stride length (30 - 80mm)
+          int nomStride = (30 + maxSpeed);                  //take a starting stride length (30 - 80mm)
           //TODO: Tune this
-          float nomCycleTime;
+          float nomCycleTime;                               //seconds
           if (maxSpeed == 0)
           {
-            nomCycleTime = 2.0;
+            nomCycleTime = 2.0;                            //turn only
           }
           else
           {
             nomCycleTime = (nomStride * stepsInCycle)     
-            / (maxSpeed * pushSteps);          //cycletime ignoring BIOLOID_FRAME_LENGTH
+              / (maxSpeed * pushSteps);                              //cycletime ignoring BIOLOID_FRAME_LENGTH
           }
-          float nomTranTime = nomCycleTime * 1000.0 / stepsInCycle;  //transition time ignoring BIOLOID_FRAME_LENGTH
+          float nomTranTime = nomCycleTime * 1000.0 / stepsInCycle;  //step transition time ignoring BIOLOID_FRAME_LENGTH
           int kFactor = (nomTranTime + 1) / 33;                     //round the k factor to an integer
 
           tranTime = (kFactor * 33) -1;                            //available transition time
-          cycleTime = (tranTime * stepsInCycle) / 1000.0;          //corresponding cycle time
+          cycleTime = (tranTime * stepsInCycle) / 1000.0;          //corresponding cycle time in seconds
 
-      Serial.print("nomCycleTime ");
-        Serial.println(nomCycleTime);
-        Serial.print("nomTranTime ");
-        Serial.println(nomTranTime);
- 
+#ifdef SIMPLE_COMMANDS
+          Serial.print("nomCycleTime ");
+          Serial.println(nomCycleTime);
+          Serial.print("nomTranTime ");
+          Serial.println(nomTranTime);
 
-       Serial.print("tranTime ");
-        Serial.println(tranTime);
-        Serial.print("cycleTime ");
-        Serial.println(cycleTime);
- 
+          Serial.print("tranTime ");
+          Serial.println(tranTime);
+          Serial.print("cycleTime ");
+          Serial.println(cycleTime);
+#endif
           SendStatus(AX_WALKING);
         }
       }
@@ -448,12 +461,6 @@ void loop(){
       }
       break;
     case MSG_TYPE_TORQUE:    //servos on
-      if (lowVoltage)
-      {
-        ErrorMessage(LOW_VOLTAGE);
-        SendVoltage();
-      }
-      else
       {
         TorqueOnAll();
       }
@@ -462,12 +469,6 @@ void loop(){
       TorqueOffAll();
       break;
     case MSG_TYPE_STAND:
-      if (lowVoltage)
-      {
-        ErrorMessage(LOW_VOLTAGE);
-        SendVoltage();
-      }
-      else
       {
         StandUp();
       }
@@ -476,7 +477,12 @@ void loop(){
       SitDown();
       break;  
     case MSG_TYPE_POSEMODE:      //switch to pose mode
-      SendStatus(AX_POSING);
+      bodyPosX = 0.0;
+      bodyPosY = 0.0;
+      bodyRotX = 0.0;
+      bodyRotY = 0.0;
+      bodyRotZ = 0.0;
+      SendStatus(AX_POSE_READY);
       break; 
     case MSG_TYPE_GET_POSE:  //obtain current x,y,z for a leg  
       {
@@ -493,15 +499,164 @@ void loop(){
       break;
     case MSG_TYPE_SET_POSE:  //specify next x,y,z for a leg
       {
-        ik_sol_t servos;    //used as IK output here
-        servos = legIK(endpoints[message.legNumber].x+message.x,  //positions are relative to the leg neutral position
-        endpoints[message.legNumber].y+message.y,
-        endpoints[message.legNumber].z+message.z);
-        FindServoNumbers(message.legNumber);
-        bioloid.setNextPose(coxaServo, servos.coxa);
-        bioloid.setNextPose(femurServo, servos.femur);
-        bioloid.setNextPose(tibiaServo, servos.tibia);
-        SendServos(message.legNumber, servos.coxa, servos.femur, servos.tibia);
+        int servo, servoCoxa, servoFemur, servoTibia;
+        ik_req_t req;
+        ik_sol_t sol;
+        endpoints[message.legNumber].x = message.x;
+        endpoints[message.legNumber].y = message.y;
+        endpoints[message.legNumber].z = message.z;
+
+        switch(message.legNumber)
+        {
+        case RIGHT_FRONT:
+          // right front leg
+
+          req = bodyFK(endpoints[RIGHT_FRONT].x, endpoints[RIGHT_FRONT].y,  endpoints[RIGHT_FRONT].z, 
+                X_COXA, Y_COXA, 0);          //body
+          sol = legIK(endpoints[RIGHT_FRONT].x+req.x, endpoints[RIGHT_FRONT].y+req.y, endpoints[RIGHT_FRONT].z+req.z);
+          servoCoxa = servo = 368 + sol.coxa;
+          if(servo < maxs[RF_COXA-1] && servo > mins[RF_COXA-1])
+            bioloid.setNextPose(RF_COXA, servo);
+          else{
+            ServoFail(RFC, servo);
+          }
+          servoFemur = servo = 524 + sol.femur;
+          if(servo < maxs[RF_FEMUR-1] && servo > mins[RF_FEMUR-1])
+            bioloid.setNextPose(RF_FEMUR, servo);
+          else{
+            ServoFail(RFF, servo);
+          }
+          servoTibia = servo = 354 + sol.tibia;
+          if(servo < maxs[RF_TIBIA-1] && servo > mins[RF_TIBIA-1])
+            bioloid.setNextPose(RF_TIBIA, servo);
+          else{
+            ServoFail(RFT, servo);
+          }
+          break;
+        case RIGHT_REAR:
+          // right rear leg
+          req = bodyFK(endpoints[RIGHT_REAR].x, endpoints[RIGHT_REAR].y, endpoints[RIGHT_REAR].z, 
+              -X_COXA, Y_COXA, 0);
+          sol = legIK(-endpoints[RIGHT_REAR].x-req.x, endpoints[RIGHT_REAR].y+req.y, endpoints[RIGHT_REAR].z+req.z);
+          servoCoxa = servo = 656 - sol.coxa;
+          if(servo < maxs[RR_COXA-1] && servo > mins[RR_COXA-1])
+            bioloid.setNextPose(RR_COXA, servo);
+          else{
+            ServoFail(RRC, servo);
+          }
+          servoFemur = servo = 524 + sol.femur;
+          if(servo < maxs[RR_FEMUR-1] && servo > mins[RR_FEMUR-1])
+            bioloid.setNextPose(RR_FEMUR, servo);
+          else{
+            ServoFail(RRF, servo);
+          }
+          servoTibia = servo = 354 + sol.tibia;
+          if(servo < maxs[RR_TIBIA-1] && servo > mins[RR_TIBIA-1])
+            bioloid.setNextPose(RR_TIBIA, servo);
+          else{
+            ServoFail(RRT, servo);
+          }
+          break;
+        case LEFT_FRONT:
+          // left front leg
+          req = bodyFK(endpoints[LEFT_FRONT].x, endpoints[LEFT_FRONT].y, endpoints[LEFT_FRONT].z, 
+              X_COXA, -Y_COXA, 0);
+          sol = legIK(endpoints[LEFT_FRONT].x+req.x, -endpoints[LEFT_FRONT].y-req.y, endpoints[LEFT_FRONT].z+req.z);
+          servoCoxa = servo = 656 - sol.coxa;
+          if(servo < maxs[LF_COXA-1] && servo > mins[LF_COXA-1])
+            bioloid.setNextPose(LF_COXA, servo);
+          else{
+            ServoFail(LFC, servo);
+          }
+          servoFemur = servo = 500 - sol.femur;
+          if(servo < maxs[LF_FEMUR-1] && servo > mins[LF_FEMUR-1])
+            bioloid.setNextPose(LF_FEMUR, servo);
+          else{
+            ServoFail(LFF, servo);
+          }
+          servoTibia = servo = 670 - sol.tibia;
+          if(servo < maxs[LF_TIBIA-1] && servo > mins[LF_TIBIA-1])
+            bioloid.setNextPose(LF_TIBIA, servo);
+          else{
+            ServoFail(LFT, servo);
+          }
+          break;
+        case LEFT_REAR:
+          // left rear leg
+          req = bodyFK(endpoints[LEFT_REAR].x, endpoints[LEFT_REAR].y,  endpoints[LEFT_REAR].z, 
+              -X_COXA, -Y_COXA, 0);
+          sol = legIK(-endpoints[LEFT_REAR].x-req.x, -endpoints[LEFT_REAR].y-req.y, endpoints[LEFT_REAR].z+req.z);
+          servoCoxa = servo = 368 + sol.coxa;
+          if(servo < maxs[LR_COXA-1] && servo > mins[LR_COXA-1])
+            bioloid.setNextPose(LR_COXA, servo);
+          else{
+            ServoFail(LRC, servo);
+          }
+          servoFemur = servo = 500 - sol.femur;
+          if(servo < maxs[LR_FEMUR-1] && servo > mins[LR_FEMUR-1])
+            bioloid.setNextPose(LR_FEMUR, servo);
+          else{
+            ServoFail(LRF, servo);
+          }
+          servoTibia = servo = 670 - sol.tibia;
+          if(servo < maxs[LR_TIBIA-1] && servo > mins[LR_TIBIA-1])
+            bioloid.setNextPose(LR_TIBIA, servo);
+          else{
+            ServoFail(LRT, servo);
+          }
+          break;
+        case RIGHT_MIDDLE:
+          // right middle leg
+          req = bodyFK(endpoints[RIGHT_MIDDLE].x, endpoints[RIGHT_MIDDLE].y,  endpoints[RIGHT_MIDDLE].z, 
+              0, Y_COXA, 0);
+          sol = legIK(endpoints[RIGHT_MIDDLE].x+req.x, endpoints[RIGHT_MIDDLE].y+req.y, endpoints[RIGHT_MIDDLE].z+req.z);
+          servoCoxa = servo = 512 + sol.coxa;
+          if(servo < maxs[RM_COXA-1] && servo > mins[RM_COXA-1])
+            bioloid.setNextPose(RM_COXA, servo);
+          else{
+            ServoFail(RMC, servo);
+          }
+          servoFemur = servo = 524 + sol.femur;
+          if(servo < maxs[RM_FEMUR-1] && servo > mins[RM_FEMUR-1])
+            bioloid.setNextPose(RM_FEMUR, servo);
+          else{
+            ServoFail(RMF, servo);
+          }
+          servoTibia = servo = 354 + sol.tibia;
+          if(servo < maxs[RM_TIBIA-1] && servo > mins[RM_TIBIA-1])
+            bioloid.setNextPose(RM_TIBIA, servo);
+          else{
+            ServoFail(RMT, servo);
+          }
+          break;
+        case LEFT_MIDDLE:
+          // left middle leg
+          req = bodyFK(endpoints[LEFT_MIDDLE].x, endpoints[LEFT_MIDDLE].y, endpoints[LEFT_MIDDLE].z, 
+              0, -Y_COXA, 0);
+          sol = legIK(endpoints[LEFT_MIDDLE].x+req.x, -endpoints[LEFT_MIDDLE].y-req.y, endpoints[LEFT_MIDDLE].z+req.z);
+          servoCoxa = servo = 512 - sol.coxa;
+          if(servo < maxs[LM_COXA-1] && servo > mins[LM_COXA-1])
+            bioloid.setNextPose(LM_COXA, servo);
+          else{
+            ServoFail(LMC, servo);
+          }
+          servoFemur = servo = 500 - sol.femur;
+          if(servo < maxs[LM_FEMUR-1] && servo > mins[LM_FEMUR-1])
+            bioloid.setNextPose(LM_FEMUR, servo);
+          else{
+            ServoFail(LMF, servo);
+          }
+          servoTibia = servo = 670 - sol.tibia;
+          if(servo < maxs[LM_TIBIA-1] && servo > mins[LM_TIBIA-1])
+            bioloid.setNextPose(LM_TIBIA, servo);
+          else{
+            ServoFail(LMT, servo);
+          }
+
+          break;
+        }
+
+        SendServos(message.legNumber, servoCoxa, servoFemur, servoTibia);
       }
       break;
     case MSG_TYPE_SET_SERVOS:
@@ -520,14 +675,11 @@ void loop(){
       }
       break;
     case MSG_TYPE_MOVE:      //go to next pose
-      if (lowVoltage)
       {
-        ErrorMessage(LOW_VOLTAGE);
-        SendVoltage();
-      }
-      else
-      {
-        bioloid.interpolateSetup(message.time);
+        int kFactor = (message.time + 1) / 33;       //round the k factor to an integer
+        tranTime = (kFactor * 33) -1; 
+        bioloid.interpolateSetup(tranTime);
+        SendStatus(AX_POSING);
       }
       break; 
     case MSG_TYPE_READ_REG:
@@ -551,9 +703,9 @@ void loop(){
   else
   {
 #ifndef NO_TIMEOUT
-    if (msgTime + 2000 < millis() && axStatus == AX_WALKING)
+    if (msgTime + 5000 < millis() && axStatus == AX_WALKING)
     {
-      //timeout after ~2 seconds
+      //timeout after 5 seconds
       Xspeed = Yspeed = Rspeed = 0;
       ErrorMessage(NOMSG_TIMEOUT);
       SendStatus(AX_STOPPING);
@@ -565,22 +717,10 @@ void loop(){
   {
   case AX_WALKING:
     {
-      if (endOfCycle)
-      {
-        //       SendOdo(Xspeed, Yspeed, Rspeed);
-        endOfCycle = 0; 
-      }
       // if our previous interpolation is complete, recompute the IK
       if(bioloid.interpolating == 0){
-        if (MOVING)  //if moving
-        {
-          doIK();
-          bioloid.interpolateSetup(tranTime);
-        }
-        else
-        {
-          SendStatus(AX_READY);
-        }
+        doIK();
+        bioloid.interpolateSetup(tranTime);
       }
       // update joints
       bioloid.interpolateStep();
@@ -588,9 +728,18 @@ void loop(){
     break;
   case AX_STOPPING:
     {
-      // if our previous interpolation is complete
+      // if our previous interpolation is complete, recompute the IK
       if(bioloid.interpolating == 0){
-        SendStatus(AX_READY);
+        if (endOfCycle)
+        {
+          gaitSelect(defaultGait);
+          SendStatus(AX_READY);
+        }
+        else
+        {
+          doIK();
+          bioloid.interpolateSetup(tranTime);
+        }
       }
       else
       {
@@ -607,7 +756,7 @@ void loop(){
         if (endOfCycle)
         {
           gaitSelect(defaultGait);
-          SendStatus(AX_TORQUED);
+          TorqueOffAll();
         }
         else
         {
@@ -648,31 +797,62 @@ void loop(){
     if (bioloid.interpolating != 0){
       bioloid.interpolateStep();
     }
+    else
+    {
+      SendStatus(AX_POSE_READY);
+    }
     break;
   case AX_READY:
-    CheckVoltage();
+    CheckForServoError();
     break;
   default:
     break;
   }
 }
 
+int EndOfStep()
+{
+  DEBUG(stepNumber);
+  if (axStatus == AX_WALKING)
+  {
+    SendOdo(((Xspeed*cycleTime)/stepsInCycle), ((Yspeed*cycleTime)/stepsInCycle), ((180.0*Rspeed*cycleTime)/(3.14159f*stepsInCycle)));
+
+    if (--message.steps <= 0)
+    {
+      DEBUG("stopping");
+      Xspeed = Yspeed = Rspeed = 0;
+      SendStatus(AX_STOPPING);
+    }
+  }
+
+  endOfCycle = (stepNumber == 0 ? 1 : 0);
+
+  return 0;
+}
+
 // stand up slowly
 void StandUp()
 {
-  SendStatus(AX_STANDING);
-  endOfCycle = 0;
+  TorqueOnAll();
   bioloid.readPose();
   MyGaitSelect(STANDUP);
   doIK();
   bioloid.interpolateSetup(tranTime);
+  SendStatus(AX_STANDING);
 }
 // sit down slowly
 void SitDown()
 {
   SendStatus(AX_SITTING);
-  endOfCycle = 0;
   MyGaitSelect(SITDOWN);
+  doIK();
+  bioloid.interpolateSetup(tranTime);
+}
+// resume stance
+void Stance()
+{
+  SendStatus(AX_STOPPING);
+  MyGaitSelect(STANCE);
   doIK();
   bioloid.interpolateSetup(tranTime);
 }
@@ -696,14 +876,7 @@ void TorqueOffAll()
   {
     Relax(i);
   }
-  if (lowVoltage)
-  {
-    SendStatus(AX_LOWVOLTAGE);
-  }
-  else
-  {
-    SendStatus(AX_TORQUED);
-  }
+  SendStatus(AX_RELAXED);
 }
 //lookup servo numbers for leg
 void FindServoNumbers(char legNumber)
@@ -816,6 +989,36 @@ void SendStatus(axState_enum _state)
 #endif
 }
 
+int CheckForServoError()
+{
+  int i;
+  for (i=1; i<=18; i++)
+  {
+    int voltage = (ax12GetRegister (i, AX_PRESENT_VOLTAGE, 1));  //access something
+    unsigned short int error = ax12GetLastError() & 0xff;
+
+    if (error != 0)
+    {
+#ifdef SIMPLE_COMMANDS
+      Serial.print("Servo ");
+      Serial.print(servoNames[i-1]);
+      Serial.print(" error = ");
+      Serial.println(error);
+#else 
+      message_t msg;
+      memset(&msg, 0, MSG_LEN);
+      msg.msgType = MSG_TYPE_ERROR;
+      msg.errorCode = (unsigned short int) SERVO_ERROR;
+      msg.errorState = (unsigned short int) axStatus;
+      msg.error1 = i;
+      msg.error2 = error;
+      SendMessage(&msg);
+#endif
+    }    
+  }  
+}
+
+
 //send leg pose
 void SendPose(int legNr, int x, int y, int z)
 {
@@ -881,15 +1084,16 @@ void SendOdo(int x, int y, int r)
   message_t msg;
   memset((void*) &msg, 0, MSG_LEN);
   msg.msgType = MSG_TYPE_ODOMETRY;
-  msg.xMovement = x;
-  msg.yMovement = y;
-  msg.zRotation = r;
+  msg.xMovement = x;    //mm
+  msg.yMovement = y;    //mm
+  msg.zRotation = r;    //degrees
   SendMessage(&msg);
 }
 
 void SendMessage(message_t *msg)
 {
-  int i, csum = 0;
+  int i;
+  int csum = 0;
   unsigned char *cMsg = (unsigned char *)msg;
 #ifdef SIMPLE_COMMANDS
   Serial.print("Message: ");
@@ -897,8 +1101,9 @@ void SendMessage(message_t *msg)
   for (i=0; i<MSG_INTS; i++)
   {
     Serial.print(", ");
-    Serial.println(msg->intValues[i]);
+    Serial.print(msg->intValues[i]);
   }
+  Serial.println();
 #else
 
   Serial.write(MSG_START);
@@ -916,24 +1121,23 @@ void SendMessage(message_t *msg)
 int CheckVoltage()
 {
   int voltage = (ax12GetRegister (1, AX_PRESENT_VOLTAGE, 1));
-#ifdef VOLT_CHECK
-  if (voltage < 100)
+  if (voltage < LOW_VOLTAGE_LIMIT)
   {
     lowVoltage = true;
+    ErrorMessage(LOW_VOLTAGE);
+    SendVoltage(voltage);
   }
   else
   {
     lowVoltage = false;
   }
-#endif
   return voltage;
 }
 //send voltage
-int SendVoltage()
+int SendVoltage(int voltage)
 {
   message_t msg;
   memset((void*) &msg, 0, MSG_LEN);
-  int voltage = CheckVoltage();
 #ifdef SIMPLE_COMMANDS
   Serial.print("Voltage: ");
   Serial.println((float)voltage/10);
@@ -954,12 +1158,19 @@ void ErrorMessage(msgType_enum m)
   Serial.println(stateNames[axStatus]);
 #else
   message_t msg;
+  memset(&msg, 0, MSG_LEN);
   msg.msgType = MSG_TYPE_ERROR;
   msg.errorCode = (unsigned short int) m;
   msg.errorState = (unsigned short int) axStatus;
   SendMessage(&msg);
 #endif
 }
+
+
+
+
+
+
 
 
 

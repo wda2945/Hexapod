@@ -75,17 +75,17 @@ typedef struct {
 
 //message lookup tables. Initialized in messages.c
 
-extern char *psTopicNames[PS_TOPIC_COUNT];
+extern const char *psTopicNames[PS_TOPIC_COUNT];
 
-extern int psMsgFormats[PS_MSG_COUNT];
+extern const int psMsgFormats[PS_MSG_COUNT];
 
-extern int psDefaultTopics[PS_MSG_COUNT];
+extern const int psDefaultTopics[PS_MSG_COUNT];
 
-extern char *psLongMsgNames[PS_MSG_COUNT];
+extern const char *psLongMsgNames[PS_MSG_COUNT];
 
-extern psQOS_enum psQOS[PS_MSG_COUNT];
+extern const psQOS_enum psQOS[PS_MSG_COUNT];
 
-extern int psMessageFormatLengths[PS_FORMAT_COUNT];
+extern const int psMessageFormatLengths[PS_FORMAT_COUNT];
 
 //options
 #define optionmacro(name, var, min, max, def) extern int var;

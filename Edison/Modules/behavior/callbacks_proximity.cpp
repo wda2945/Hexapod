@@ -83,7 +83,7 @@ static int ProximityAction(lua_State *L)
 
 	lastLuaCall = proximityActionList[actionCode];
 
-	LogRoutine("ProximityAction: %s", proximityActionList[actionCode]);
+	DEBUGPRINT("Proximity Action: %s", proximityActionList[actionCode]);
 
 	switch (actionCode)
 	{
@@ -121,7 +121,7 @@ static int ProximityAction(lua_State *L)
 		return actionReply(L, proximityStatus(PROX_FRONT_RIGHT_MASK, PROX_CLOSE_MASK | PROX_FAR_MASK));
 		break;
 	default:
-		LogError("Prox action: %i\n", actionCode);
+		ERRORPRINT("Prox action: %i", actionCode);
 		break;
 	}
 	return fail(L);

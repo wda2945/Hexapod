@@ -38,6 +38,7 @@ typedef enum {
 	SaveSettings,
 	LoadSettings,
 	ResetSavedSettings,
+	SystemReboot,
     SystemPoweroff,
     SystemSetResting,
     SystemSetActive,
@@ -49,6 +50,7 @@ static const char *systemActionList[] = {
 		"SaveSettings",
 		"LoadSettings",
 		"ResetSavedSettings",
+		"SystemReboot",
 	    "SystemPoweroff",
 	    "SystemSetResting",
 	    "SystemSetActive",
@@ -83,7 +85,7 @@ static int SystemAction(lua_State *L)
 
 	lastLuaCall = systemActionList[actionCode];
 
-	LogInfo("SystemAction: %s", systemActionList[actionCode]);
+	DEBUGPRINT("System Action: %s", systemActionList[actionCode]);
 
 	switch (actionCode)
 	{
@@ -96,6 +98,10 @@ static int SystemAction(lua_State *L)
 	case ResetSavedSettings:
 		return SaveSettingsAndOptions(L, true);
 		break;
+	case SystemReboot:
+		reboot(RB_AUTOBOOT);
+		return success(L);
+		break;
 	case SystemPoweroff:
 		reboot(RB_POWER_OFF);
 		return success(L);
@@ -106,7 +112,7 @@ static int SystemAction(lua_State *L)
 		return success(L);
 		break;
 	default:
-		LogError("Sys code: %i\n", actionCode);
+		ERRORPRINT("Sys code: %i", actionCode);
 		return fail(L);
 		break;
 	}
@@ -141,19 +147,19 @@ int SaveSettingsAndOptions(lua_State *L, bool useDefault)
 			}
 			else
 			{
-				LogRoutine("Settings and Options Saved\n");
+				LogRoutine("Settings and Options Saved");
 				return success(L);
 			}
 		}
 		else
 		{
-			LogError("Options.txt - %s\n", strerror(errno));
+			LogError("Options.txt - %s", strerror(errno));
 			return fail(L);
 		}
 	}
 	else
 	{
-		LogError("Options.txt - %s\n", strerror(errno));
+		LogError("Options.txt - %s", strerror(errno));
 		return  fail(L);
 	}
 }
@@ -179,7 +185,7 @@ int LoadSettingsAndOptions(lua_State *L)
 			}
 			else if (result < 0)
 			{
-				LogError("Settings read: %s\n", strerror(errno));
+				LogError("Settings read: %s", strerror(errno));
 				return fail(L);
 			}
 		} while (result > 0);
@@ -200,25 +206,25 @@ int LoadSettingsAndOptions(lua_State *L)
 				}
 				else if (result < 0)
 				{
-					LogError("Options read: %s\n", strerror(errno));
+					LogError("Options read: %s", strerror(errno));
 					return fail(L);
 				}
 			} while (result > 0);
 
 			fclose(fp);
 
-			LogRoutine("Settings and Options Saved\n");
+			LogRoutine("Settings and Options Saved");
 			return success(L);
 		}
 		else
 		{
-			LogError("Settings.txt: %s\n", strerror(errno));
+			LogError("Settings.txt: %s", strerror(errno));
 			return  fail(L);
 		}
 	}
 	else
 	{
-		LogError("Settigns.txt: %s\n", strerror(errno));
+		LogError("Settigns.txt: %s", strerror(errno));
 		return  fail(L);
 	}
 }

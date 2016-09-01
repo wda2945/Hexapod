@@ -112,7 +112,7 @@ void ProcessTickMessage(const void *_msg, int len);
 int AutopilotInit() {
 
 	pilotDebugFile = fopen_logfile("pilot");
-	DEBUGPRINT("Autopilot Logfile opened\n");
+	DEBUGPRINT("Autopilot Logfile opened");
 
 	//create autopilot thread
 	pthread_t thread;
@@ -153,7 +153,7 @@ bool CancelPilotOperation(PilotState_enum newState)
 	case PILOT_STATE_MOVE_SENT:
 		//send stop message
 		SendMotorCommand(0,0,0,0);
-		LogRoutine("Pilot %s Cancelled.\n", pilotStateNames[pilotState]);
+		LogRoutine("Pilot %s Cancelled.", pilotStateNames[pilotState]);
 		pilotState = newState;
 		return true;			//stop sent
 		break;
@@ -174,7 +174,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	switch(_action)
@@ -288,7 +288,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				result = ACTION_RUNNING;
 				break;
 			default:
-				LogError("Pilot action: %i\n", _action);
+				LogError("Pilot action: %i", _action);
 				result = ACTION_FAIL;
 				lastLuaCallReason = "BadCode";
 				break;
@@ -342,7 +342,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_TURN_S:
 				case PILOT_TURN_E:
 				case PILOT_TURN_W:
-					LogRoutine("Pilot: Orient to: %i\n", desiredCompassHeading);
+					LogRoutine("Pilot: Orient to: %i", desiredCompassHeading);
 					if (PerformOrient())
 					{
 						result = ACTION_SUCCESS;
@@ -353,7 +353,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					}
 					break;
 				case PILOT_ENGAGE:
-					LogRoutine("Pilot: Move to: %fN, %fE\n", nextPosition.longitude, nextPosition.latitude);
+					LogRoutine("Pilot: Move to: %fN, %fE", nextPosition.longitude, nextPosition.latitude);
 					if (PerformMovement())
 					{
 						result = ACTION_SUCCESS;
@@ -368,7 +368,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = CalculateRandomDistance();
 					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move forward\n");
+					LogRoutine("Pilot: Move forward");
 					pilotState = PILOT_STATE_FORWARD_SENT;
 				}
 					break;
@@ -377,7 +377,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = CalculateRandomDistance();
 					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move backward\n");
+					LogRoutine("Pilot: Move backward");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
 				}
 					break;
@@ -386,7 +386,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = 10;
 					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move forward 10\n");
+					LogRoutine("Pilot: Move forward 10");
 					pilotState = PILOT_STATE_FORWARD_SENT;
 				}
 					break;
@@ -395,7 +395,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = 10;
 					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move backward 10\n");
+					LogRoutine("Pilot: Move backward 10");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
 				}
 					break;
@@ -418,7 +418,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 
@@ -432,7 +432,7 @@ ActionResult_enum AutopilotIsReadyToMove()
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	if (pilotState == PILOT_STATE_INACTIVE)
@@ -444,7 +444,7 @@ ActionResult_enum AutopilotIsReadyToMove()
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 
@@ -496,7 +496,7 @@ void *AutopilotThread(void *arg) {
 
 //	PowerState_enum powerState = POWER_STATE_UNKNOWN;
 
-	DEBUGPRINT("Pilot thread ready\n");
+	DEBUGPRINT("Pilot thread ready");
 
 	//loop
 	while (1) {
@@ -505,7 +505,7 @@ void *AutopilotThread(void *arg) {
 		int s = pthread_mutex_lock(&pilotStateMtx);
 		if (s != 0)
 		{
-			ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+			ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 		}
 
 		priorPilotState = pilotState;	//track state for Conditions
@@ -577,7 +577,7 @@ void *AutopilotThread(void *arg) {
 		s = pthread_mutex_unlock(&pilotStateMtx);
 		if (s != 0)
 		{
-			ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+			ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 		}
 		//end critical section
 
@@ -591,7 +591,7 @@ void HandleEvent(void *arg, ps_event_id_t event)
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	switch(event)
@@ -607,19 +607,19 @@ void HandleEvent(void *arg, ps_event_id_t event)
 		{
 		case PILOT_STATE_FORWARD_SENT:
 			pilotState = PILOT_STATE_FORWARD;
-			 LogRoutine("Pilot Move Fwd Started\n");
+			 LogRoutine("Pilot Move Fwd Started");
 			break;
 		case PILOT_STATE_BACKWARD_SENT:
 			pilotState = PILOT_STATE_BACKWARD;
-			LogRoutine("Pilot Move Back Started\n");
+			LogRoutine("Pilot Move Back Started");
 			break;
 		case PILOT_STATE_ORIENT_SENT:
 			pilotState = PILOT_STATE_ORIENT;
-			LogRoutine("Pilot Orient Started\n");
+			LogRoutine("Pilot Orient Started");
 			break;
 		case PILOT_STATE_MOVE_SENT:
 			pilotState = PILOT_STATE_MOVE;
-			LogRoutine("Pilot Move Started\n");
+			LogRoutine("Pilot Move Started");
 			break;
 		default:
 			break;
@@ -631,12 +631,12 @@ void HandleEvent(void *arg, ps_event_id_t event)
 		case PILOT_STATE_FORWARD:
 		case PILOT_STATE_BACKWARD:
 			pilotState = PILOT_STATE_DONE;
-			LogRoutine("Pilot Move Done\n");
+			LogRoutine("Pilot Move Done");
 			break;
 		case PILOT_STATE_ORIENT:
 			{
 				pilotState = PILOT_STATE_DONE;
-				LogRoutine("D/R Orient Done\n");
+				LogRoutine("D/R Orient Done");
 			}
 			break;
 		case PILOT_STATE_MOVE:
@@ -660,7 +660,7 @@ void HandleEvent(void *arg, ps_event_id_t event)
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 }
@@ -673,7 +673,7 @@ void ProcessOdometryMessage(const void *_msg, int len)
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	odometry = rxMessage->odometryPayload;
@@ -683,7 +683,7 @@ void ProcessOdometryMessage(const void *_msg, int len)
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 }
@@ -696,7 +696,7 @@ void ProcessPoseMessage(const void *_msg, int len)
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	pose = rxMessage->posePayload;
@@ -706,7 +706,7 @@ void ProcessPoseMessage(const void *_msg, int len)
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 }
@@ -717,14 +717,14 @@ void ProcessTickMessage(const void *_msg, int len)
 	int s = pthread_mutex_lock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx lock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx lock %i", s);
 	}
 
 	//make pilot available
 	if ((pilotState == PILOT_STATE_INACTIVE) && moveOK && !motorsInhibit)
 	{
 		pilotState = PILOT_STATE_IDLE;
-		LogInfo("Pilot Available\n");
+		LogInfo("Pilot Available");
 	}
 	reviewProgress = true;
 
@@ -745,7 +745,7 @@ void ProcessTickMessage(const void *_msg, int len)
 				CancelPilotOperation(PILOT_STATE_FAILED);
 				lastLuaCallReason = "StartTO";
 				MOVE_XXX_SENT_time = 0;
-				LogWarning("Motors Start TO\n");
+				LogWarning("Motors Start TO");
 			}
 		}
 		break;
@@ -764,7 +764,7 @@ void ProcessTickMessage(const void *_msg, int len)
 				CancelPilotOperation(PILOT_STATE_FAILED);
 				lastLuaCallReason = "RunTO";
 				MOVE_XXX_time = 0;
-				LogWarning("Motors Run TO\n");
+				LogWarning("Motors Run TO");
 			}
 		}
 		break;
@@ -777,7 +777,7 @@ void ProcessTickMessage(const void *_msg, int len)
 	s = pthread_mutex_unlock(&pilotStateMtx);
 	if (s != 0)
 	{
-		ERRORPRINT("Pilot: pilotStateMtx unlock %i\n", s);
+		ERRORPRINT("Pilot: pilotStateMtx unlock %i", s);
 	}
 	//end critical section
 }
@@ -785,7 +785,7 @@ void ProcessTickMessage(const void *_msg, int len)
 bool VerifyCompass()
 {
 	if (!pose.orientationValid) {
-		LogRoutine("Pilot: No compass fail\n");
+		LogRoutine("Pilot: No compass fail");
 		pilotState = PILOT_STATE_FAILED;
 		lastLuaCallReason = "Compass";
 		return false;
@@ -813,11 +813,11 @@ bool PerformOrient()
 	//if close, report done
 	if (abs(angleError) < arrivalHeading) {
 		SendMotorCommand(0,0,0,0);
-		LogRoutine("Pilot: Orient done\n");
+		LogRoutine("Pilot: Orient done");
 		pilotState = PILOT_STATE_DONE;
 		return true;
 	} else {
-		LogRoutine("Pilot: angle error %f\n", angleError);
+		LogRoutine("Pilot: angle error %f", angleError);
 		//send turn command
 //		float range = abs(angleError * FIDO_RADIUS * M_PI / 180.0);
 //		//send turn command
@@ -850,12 +850,12 @@ bool PerformMovement()
 {
 	float rangeCM = GetRangeToGoal();
 
-	LogRoutine("Pilot: Range = %.0f\n", rangeCM);
+	LogRoutine("Pilot: Range = %.0f", rangeCM);
 
 	if (rangeCM < arrivalRange)
 	{
 		SendMotorCommand(0,0,0,0);
-		LogRoutine("Pilot: Route done\n");
+		LogRoutine("Pilot: Route done");
 		pilotState = PILOT_STATE_DONE;
 	}
 
@@ -888,7 +888,7 @@ void SendMotorCommand(int _port, int _starboard, int _speed, uint16_t _flags)
 //	RouteMessage(motorMessage);
 //	gettimeofday(&latestMotorTime, NULL);
 
-	LogRoutine("Pilot: Motors %i, %i\n", _port, _starboard);
+	LogRoutine("Pilot: Motors %i, %i", _port, _starboard);
 }
 
 //convenience routines

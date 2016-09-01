@@ -72,6 +72,8 @@ typedef struct {
 		struct {
 			unsigned short int errorCode;        	 //msgType_enum
 			unsigned short int errorState;           //axState_enum
+			unsigned short int error1;        	 
+			unsigned short int error2;                 
 		};
 #define MSG_INTS 4
 		short int intValues[MSG_INTS];
@@ -81,7 +83,7 @@ typedef struct {
 	unsigned char msgType;             //see msgType_enum below
 } message_t;
 
-#define MSG_LEN       	(sizeof(message_t))      				//excludes MSG_START & checksum
+#define MSG_LEN       	(9)      				//excludes MSG_START & checksum
 
 #define MSG_START '@'
 
@@ -124,6 +126,7 @@ typedef enum {
 	BAD_CHECKSUM,
 	BAD_CONTEXT,
 	LOW_VOLTAGE,
+    SERVO_ERROR,
 	NOMSG_TIMEOUT,
 	MSG_TYPE_COUNT
 }
@@ -162,6 +165,7 @@ msgType_enum;
 		"Bad_Checksum",\
 		"Bad_Context",\
 		"Low_Voltage",\
+		"Servo_Error",\
 		"Nomsg_Timeout"\
 }
 
@@ -173,6 +177,7 @@ typedef enum {
 	AX_READY,          //standing ready to walk
 	AX_WALKING,
 	AX_POSING,         //under pose control
+	AX_POSE_READY,     //under pose control
 	AX_STOPPING,       //in process
 	AX_SITTING,        //in process
 	AX_STANDING,       //in process
@@ -184,13 +189,47 @@ axState_enum;
 		"stopping","sitting","standing"}
 //servo enum
 typedef enum {
-	RFC,RFF,RFT,RRC,RRF,RRT,LFC,LFF,LFT,LRC,LRF,LRT,
-	RMC,RMF,RMT,LMC,LMF,LMT
+LFC,
+RFC,
+LFF,
+RFF,
+LFT,
+RFT,
+LRC,
+RRC,
+LRF,
+RRF,
+LRT,
+RRT,
+LMC,
+RMC,
+LMF,
+RMF,
+LMT,
+RMT
 }
 servo_enum;
 
-#define SERVO_NAMES {"RFC","RFF","RFT","RRC","RRF","RRT","LFC",\
-		"LFF","LFT","LRC","LRF","LRT","RMC","RMF","RMT","LMC","LMF","LMT"}
+#define SERVO_NAMES {\
+"LFC",\
+"RFC",\
+"LFF",\
+"RFF",\
+"LFT",\
+"RFT",\
+"LRC",\
+"RRC",\
+"LRF",\
+"RRF",\
+"LRT",\
+"RRT",\
+"LMC",\
+"RMC",\
+"LMF",\
+"RMF",\
+"LMT",\
+"RMT"\
+}
 
 //gaits
 #define RIPPLE                  0
@@ -201,6 +240,7 @@ servo_enum;
 
 #define STANDUP              0x10
 #define SITDOWN              0x11
+#define STANCE               0x12
 
 //legs
 typedef enum {

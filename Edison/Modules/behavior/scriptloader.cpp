@@ -58,13 +58,13 @@ int LoadFromFolder(lua_State *L, const char *scriptFolder)	//load all scripts in
 	DIR *dp;
 	struct dirent *ep;
 
-	DEBUGPRINT("Script Folder: %s\n", scriptFolder);
+	DEBUGPRINT("Script Folder: %s", scriptFolder);
 
 	dp = opendir (scriptFolder);
 	if (dp != NULL) {
 		while ((ep = readdir (dp))) {
 
-			DEBUGPRINT("File: %s\n", ep->d_name);
+			DEBUGPRINT("File: %s", ep->d_name);
 
 			//check whether the file is a lua script
 			int len = strlen(ep->d_name);
@@ -90,7 +90,7 @@ int LoadFromFolder(lua_State *L, const char *scriptFolder)	//load all scripts in
 		}
 		(void) closedir (dp);
 	}
-	DEBUGPRINT("Script Folder: %s done\n", scriptFolder);
+	DEBUGPRINT("Script Folder: %s done", scriptFolder);
 
 	return 0;
 }
@@ -108,18 +108,18 @@ int LoadFromFile(lua_State *L, const char *name, const char *path, int nargs)
 		if (status != LUA_OK)
 		{
 			const char *errormsg = lua_tostring(L, -1);
-			ERRORPRINT("Error: %s\n",errormsg);
+			ERRORPRINT("Error: %s",errormsg);
 			return -1;
 		}
 		else
 		{
-			DEBUGPRINT("loaded %s\n", name);
+			DEBUGPRINT("loaded %s", name);
 			return 0;
 		}
 	}
 	else
 	{
-		ERRORPRINT("failed to load %s - %i\n", name, loadReply);
+		ERRORPRINT("failed to load %s - %i", name, loadReply);
 		return -1;
 	}
 }
@@ -129,13 +129,13 @@ FILE *chunkFile;
 int LoadChunk(lua_State *L, const char *name, const char *path)
 {
 	int loadReply;
-	DEBUGPRINT("Loading %s: %s\n",name, path);
+	DEBUGPRINT("Loading %s: %s",name, path);
 
 	chunkFile = fopen(path, "r");
 
 	if (!chunkFile)
 	{
-		ERRORPRINT("Failed to open %s\n",path);
+		ERRORPRINT("Failed to open %s",path);
 		return -1;
 	}
 
@@ -146,12 +146,12 @@ int LoadChunk(lua_State *L, const char *name, const char *path)
 	if  (loadReply == LUA_ERRSYNTAX)
 	{
 		const char *errormsg = lua_tostring(L, -1);
-		ERRORPRINT("lua: %s syntax error: %s\n", name, errormsg);
+		ERRORPRINT("lua: %s syntax error: %s", name, errormsg);
 		return -1;
 	}
 	else if (loadReply != LUA_OK)
 	{
-		ERRORPRINT("lua_load of %s fail: %i\n", path, loadReply);
+		ERRORPRINT("lua_load of %s fail: %i", path, loadReply);
 		return -1;
 	}
 	return 0;

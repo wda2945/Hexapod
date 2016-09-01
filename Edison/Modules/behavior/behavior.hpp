@@ -28,6 +28,7 @@ void AvailableScripts();
 int InitPilotingCallbacks(lua_State *L);
 int InitProximityCallbacks(lua_State *L);
 int InitSystemCallbacks(lua_State *L);
+int InitHexapodCallbacks(lua_State *L);
 int InitLuaGlobals(lua_State *L);
 int LoadAllScripts(lua_State *L);
 

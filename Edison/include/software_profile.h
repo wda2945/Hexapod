@@ -25,6 +25,7 @@
 #define I2C_DEBUG
 #define LIDAR_DEBUG
 #define NAVIGATOR_DEBUG
+#define SCANNER_DEBUG
 
 #define BEHAVIOR_TREE_CLASS	"/home/root/lua/behaviortree/behavior_tree.lua"
 #define INIT_SCRIPT_PATH 	"/home/root/lua/init"				//initialization
@@ -36,6 +37,8 @@
 #define WAYPOINT_FILE_PATH	"/home/root/data/waypoints.xml"
 #define SAVED_SETTINGS_FILE "/home/root/data/settings.txt"
 #define SAVED_OPTIONS_FILE  "/home/root/data/options.txt"
+
+#define POSE_FOLDER 		"/home/root/poses"
 
 #define UART1	0
 #define UART2	1
@@ -66,12 +69,10 @@
 #define ARB_UART_BAUDRATE 		38400
 
 //Unused PWM
-#define GRIPPER_SERVO_PIN		MRAA_INTEL_EDISON_GP182
-#define RPLIDAR_PWM_PIN			MRAA_INTEL_EDISON_GP183
+//#define GRIPPER_SERVO_PIN		MRAA_INTEL_EDISON_GP182
+//#define RPLIDAR_PWM_PIN		MRAA_INTEL_EDISON_GP183
 //adjacent pins
-#define J19_9					MRAA_INTEL_EDISON_GP14
-#define J20_9					MRAA_INTEL_EDISON_GP42
-
-#define MESSAGE_DELAY 200
+//#define J19_9					MRAA_INTEL_EDISON_GP14
+//#define J20_9					MRAA_INTEL_EDISON_GP42
 
 #endif //software_profile_h

@@ -9,7 +9,9 @@
 //settingmacro(name, var, min, max, def)
 settingmacro("Arb Timeout", arbTimeout, 1, 20, 10)
 
-settingmacro("Close Range", closeRange, 1, 100, 20)
+settingmacro("Close Range", closeRange, 1, 100, 30)
+settingmacro("Far Range", farRange, 1, 100, 60)
+settingmacro("ProxThreshold", proxThreshold, 0.0, 1, 0.25)
 
 //navigator
 settingmacro("Nav Loop mS", navLoopDelay, 100, 1000, 500)
@@ -44,5 +46,5 @@ settingmacro("APP Max Error", maxUARTError, 0, 100, 50)
 settingmacro("Arb Fast", arbFastSpeed, 10, 100, 50)
 settingmacro("Arb Medium", arbMediumSpeed, 10, 100, 25)
 settingmacro("Arb Slow", arbSlowSpeed, 10, 100, 10)
-settingmacro("Deg/step", degreesPerStep, 1, 20, 100)
-settingmacro("Cm/step", cmPerStep, 1, 20, 100)
+settingmacro("Deg/step", degreesPerStep, 1, 30, 10)
+settingmacro("Cm/step", cmPerStep, 1, 100, 20)
