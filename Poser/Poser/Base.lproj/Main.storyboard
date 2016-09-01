@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15F34" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="zkQ-il-FF1">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15G31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="zkQ-il-FF1">
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
@@ -20,21 +20,6 @@
                             <view opaque="NO" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="jB0-sm-UDN">
                                 <rect key="frame" x="0.0" y="0.0" width="1024" height="206"/>
                                 <subviews>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7dz-kD-O8J">
-                                        <rect key="frame" x="198" y="114" width="100" height="40"/>
-                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        <state key="normal" title="View"/>
-                                        <state key="selected">
-                                            <color key="titleColor" red="0.0016199964351774065" green="1" blue="0.18581818607051992" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="0.0" blue="0.061523099769999999" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="viewButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="cmN-Yg-X4w"/>
-                                        </connections>
-                                    </button>
                                     <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="wxU-Y5-Fat">
                                         <rect key="frame" x="113" y="15" width="51" height="51"/>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
@@ -93,36 +78,6 @@
                                         </state>
                                         <connections>
                                             <action selector="lr_button:" destination="zkQ-il-FF1" eventType="touchUpInside" id="IIJ-47-9c7"/>
-                                        </connections>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="nIB-LR-VFq">
-                                        <rect key="frame" x="198" y="21" width="100" height="40"/>
-                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        <state key="normal" title="Body XYZ"/>
-                                        <state key="selected">
-                                            <color key="titleColor" red="0.0016199964350000001" green="1" blue="0.1858181861" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="0.0" blue="0.061523099769999999" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="body_button:" destination="zkQ-il-FF1" eventType="touchUpInside" id="tRw-sh-u6I"/>
-                                        </connections>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="0hH-se-KcZ">
-                                        <rect key="frame" x="198" y="66" width="100" height="40"/>
-                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        <state key="normal" title="Body Rot"/>
-                                        <state key="selected">
-                                            <color key="titleColor" red="0.0016199964350000001" green="1" blue="0.1858181861" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="0.0" blue="0.061523099769999999" alpha="1" colorSpace="calibratedRGB"/>
-                                            <color key="titleShadowColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="body_rot:" destination="zkQ-il-FF1" eventType="touchUpInside" id="LE8-8g-c4B"/>
                                         </connections>
                                     </button>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="LR" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="K1e-lh-TRJ">
@@ -288,9 +243,9 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="J04-pQ-y4x">
-                                        <rect key="frame" x="380" y="114" width="151" height="40"/>
+                                        <rect key="frame" x="470" y="69" width="54" height="40"/>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        <state key="normal" title="Reset all"/>
+                                        <state key="normal" title="Reset"/>
                                         <state key="selected">
                                             <color key="titleColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                         </state>
@@ -298,29 +253,13 @@
                                             <action selector="resetButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="bZx-5e-WXa"/>
                                         </connections>
                                     </button>
-                                    <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="unnamed.txt" borderStyle="roundedRect" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="rjH-et-vsG">
-                                        <rect key="frame" x="332" y="26" width="244" height="30"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <textInputTraits key="textInputTraits"/>
-                                        <connections>
-                                            <action selector="textEditingDidEnd:" destination="zkQ-il-FF1" eventType="editingDidEnd" id="dyP-aB-qxD"/>
-                                            <outlet property="delegate" destination="zkQ-il-FF1" id="X3A-bq-sbw"/>
-                                        </connections>
-                                    </textField>
                                     <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="X0L-q9-2k5">
-                                        <rect key="frame" x="326" y="119" width="46" height="30"/>
+                                        <rect key="frame" x="296" y="74" width="54" height="30"/>
                                         <state key="normal" title="Open"/>
                                         <connections>
                                             <action selector="openButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="ige-dV-qNG"/>
                                         </connections>
                                     </button>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="trf-rd-0UC">
-                                        <rect key="frame" x="332" y="63" width="244" height="21"/>
-                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                        <color key="textColor" red="1" green="0.0" blue="0.061523099769999999" alpha="1" colorSpace="calibratedRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
                                     <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="pEE-gB-XBH">
                                         <rect key="frame" x="26" y="63" width="51" height="51"/>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
@@ -346,12 +285,39 @@
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TY1-Vx-VjC">
-                                        <rect key="frame" x="539" y="119" width="46" height="30"/>
+                                        <rect key="frame" x="381" y="74" width="54" height="30"/>
                                         <state key="normal" title="Save"/>
                                         <connections>
                                             <action selector="saveButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="vhr-TF-t1m"/>
                                         </connections>
                                     </button>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Er2-PZ-BBD">
+                                        <rect key="frame" x="376" y="135" width="64" height="30"/>
+                                        <state key="normal" title="Translate"/>
+                                        <connections>
+                                            <action selector="translateButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="gr2-YC-qAq"/>
+                                        </connections>
+                                    </button>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Body:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4N9-pG-GjX">
+                                        <rect key="frame" x="296" y="139" width="44" height="21"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Bpl-0g-wYP">
+                                        <rect key="frame" x="475" y="135" width="45" height="30"/>
+                                        <state key="normal" title="Rotate"/>
+                                        <connections>
+                                            <action selector="rotateButton:" destination="zkQ-il-FF1" eventType="touchUpInside" id="FpM-pP-SL8"/>
+                                        </connections>
+                                    </button>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="filename" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mJf-WS-y05">
+                                        <rect key="frame" x="234" y="30" width="365" height="21"/>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="0.0" colorSpace="calibratedWhite"/>
                             </view>
@@ -370,26 +336,32 @@
                         <outlet property="LFC" destination="aWR-Lf-uqw" id="iN2-sU-eaz"/>
                         <outlet property="LFF" destination="TkU-Dy-UTI" id="llO-gf-XRq"/>
                         <outlet property="LFT" destination="vqT-tr-pCq" id="iHf-zv-HCX"/>
+                        <outlet property="LFbutton" destination="bMO-Je-jHe" id="Bwu-hx-kDX"/>
                         <outlet property="LMC" destination="zbU-iA-FOO" id="abY-15-xUK"/>
                         <outlet property="LMF" destination="OHf-YV-aXf" id="beR-rA-D0Z"/>
                         <outlet property="LMT" destination="rJb-fX-qia" id="23u-OE-NF8"/>
+                        <outlet property="LMbutton" destination="pEE-gB-XBH" id="CIx-fW-AkH"/>
                         <outlet property="LRC" destination="WHr-jw-lDz" id="jNt-1A-94K"/>
                         <outlet property="LRF" destination="eFL-PX-6AZ" id="yLX-Fu-OqJ"/>
                         <outlet property="LRT" destination="YLg-Rr-Y2x" id="Zoy-I3-JmR"/>
+                        <outlet property="LRbutton" destination="5sg-P1-CrK" id="LCc-Oi-4hN"/>
                         <outlet property="RFC" destination="DlZ-3C-Pqc" id="srA-QY-vHr"/>
                         <outlet property="RFF" destination="HdQ-7L-jFg" id="P1c-AX-ZX7"/>
                         <outlet property="RFT" destination="hTc-fg-F1E" id="M4x-P3-94a"/>
+                        <outlet property="RFbutton" destination="wxU-Y5-Fat" id="AD5-BG-vEo"/>
                         <outlet property="RMC" destination="f1S-F4-Hib" id="RSY-yO-k50"/>
                         <outlet property="RMF" destination="hcb-aB-tNt" id="cN1-Fi-xte"/>
                         <outlet property="RMT" destination="cNg-P5-nAJ" id="yYD-Bv-gtJ"/>
+                        <outlet property="RMbutton" destination="Uie-dp-VFP" id="yda-Bl-2KO"/>
                         <outlet property="RRC" destination="9xk-iz-Be3" id="wHR-Yd-wMW"/>
                         <outlet property="RRF" destination="X4f-ab-Yya" id="hWh-ZK-q1G"/>
                         <outlet property="RRT" destination="b7b-9M-fas" id="Gl2-tH-RXi"/>
-                        <outlet property="fileError" destination="trf-rd-0UC" id="fJy-JV-UTb"/>
+                        <outlet property="RRbutton" destination="tiE-iD-c2w" id="0oO-CF-2qc"/>
+                        <outlet property="bodyRotate" destination="Bpl-0g-wYP" id="e3V-vl-2ID"/>
+                        <outlet property="bodyTranslate" destination="Er2-PZ-BBD" id="SWL-yq-q0X"/>
                         <outlet property="glkView" destination="yfK-3T-bAl" id="aNt-va-mFv"/>
+                        <outlet property="lblFilename" destination="mJf-WS-y05" id="EA2-zp-Xvv"/>
                         <outlet property="reset_button" destination="J04-pQ-y4x" id="OIk-et-ek2"/>
-                        <outlet property="textField" destination="rjH-et-vsG" id="DJU-Fo-cu7"/>
-                        <outlet property="view_button" destination="7dz-kD-O8J" id="FHc-Oi-TiO"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ncR-El-1Zb" userLabel="First Responder" sceneMemberID="firstResponder"/>

@@ -16,20 +16,24 @@
 class Leg {
 public:
     int myLegId;
+    bool selected {false};
     
     JointServo coxa, femur, tibia;
     
-    GLKVector4 endpoint;
+    GLKVector4 endpoint;            //set endpoint
+    GLKVector4 relativeEndpoint;    //endpoint relative to body (after body displacement)
+    
     GLKVector4 coxaOrigin;
-    GLKVector4 transformedCoxaOrigin;
+//    GLKVector4 transformedCoxaOrigin;
     
     double naturalAngle;     //radians
     
     void setLegNumber(int leg);
     bool newEndpoint(GLKVector4 ep);
     
-    void updateServos(GLKMatrix4 bodyTransform, bool forward);
-    
+    void updateServos(GLKMatrix4 bodyTransform);
+    GLKVector4 bodyFK(int X, int Y, int Z,               //leg nominal position
+                      int Xdisp, int Ydisp, float Zrot);
     void inverseKinematics(GLKVector4 effector);
 };
 

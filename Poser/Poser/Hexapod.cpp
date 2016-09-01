@@ -52,29 +52,29 @@ Hexapod theHexapod;
 Hexapod::Hexapod()
 {
     //endpoints
-    legReset[RIGHT_FRONT].x = 200;
-    legReset[RIGHT_FRONT].y = -200;
-    legReset[RIGHT_FRONT].z = 0;
+    legReset[RIGHT_FRONT].x = 52;
+    legReset[RIGHT_FRONT].y = 118;
+    legReset[RIGHT_FRONT].z = 97;
     
-    legReset[RIGHT_REAR].x = -200;
-    legReset[RIGHT_REAR].y = -200;
-    legReset[RIGHT_REAR].z = 0;
+    legReset[RIGHT_REAR].x = -52;
+    legReset[RIGHT_REAR].y = 118;
+    legReset[RIGHT_REAR].z = 97;
     
-    legReset[LEFT_FRONT].x = 200;
-    legReset[LEFT_FRONT].y = 200;
-    legReset[LEFT_FRONT].z = 0;
+    legReset[LEFT_FRONT].x = 52;
+    legReset[LEFT_FRONT].y = -118;
+    legReset[LEFT_FRONT].z = 97;
     
-    legReset[LEFT_REAR].x = -200;
-    legReset[LEFT_REAR].y = 200;
-    legReset[LEFT_REAR].z = 0;
+    legReset[LEFT_REAR].x = -52;
+    legReset[LEFT_REAR].y = -118;
+    legReset[LEFT_REAR].z = 97;
     
     legReset[RIGHT_MIDDLE].x = 0;
-    legReset[RIGHT_MIDDLE].y = -280;
-    legReset[RIGHT_MIDDLE].z = 0;
+    legReset[RIGHT_MIDDLE].y = 118;
+    legReset[RIGHT_MIDDLE].z = 97;
     
     legReset[LEFT_MIDDLE].x = 0;
-    legReset[LEFT_MIDDLE].y = 280;
-    legReset[LEFT_MIDDLE].z = 0;
+    legReset[LEFT_MIDDLE].y = -118;
+    legReset[LEFT_MIDDLE].z = 97;
 
     reset(-2);
     
@@ -103,7 +103,7 @@ void Hexapod::reset(int leg_number)
     if ((leg_number == -1) || (leg_number == -2))
     {
         //body xyz
-        bodyOffset  =  {0.0, 0.0, BODY_REST_HEIGHT};
+        bodyOffset  =  {0.0, 0.0, 0.0};
     }
     if ((leg_number == -1) || (leg_number == -3))
     {
@@ -116,14 +116,15 @@ void Hexapod::update()
 {
     //update body
     
-    bodyMatrix = GLKMatrix4MakeTranslation(bodyOffset.x, bodyOffset.y, bodyOffset.z);
+    bodyMatrix = GLKMatrix4Identity;
     bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.x, 1.0, 0.0, 0);
     bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.y, 0, 1.0, 0);
     bodyMatrix = GLKMatrix4Rotate(bodyMatrix, bodyRotation.z, 0, 0, 1.0);
+    bodyMatrix = GLKMatrix4Translate(bodyMatrix, bodyOffset.x, bodyOffset.y, bodyOffset.z);
     
     for (int i = 0; i < LEG_COUNT; i++)
     {
-        legs[i].updateServos(bodyMatrix, false);
+        legs[i].updateServos(bodyMatrix);
     }
 }
 GLKMatrix4 Hexapod::getMatrix(int servo)
@@ -147,4 +148,26 @@ GLKMatrix4 Hexapod::getMatrix(int servo)
             return GLKMatrix4Identity;
     }
     
+}
+bool Hexapod::getSelected(int servo)
+{
+    if (servoToJoint[servo] >=0)
+    {
+        return legs[servoToLeg[servo]].selected;
+    }
+    else
+    {
+        return false;
+    }
+}
+float Hexapod::getFloor()
+{
+    float floor = legs[0].endpoint.z;
+    
+    for (int i=1; i<6; i++)
+    {
+         if (legs[i].endpoint.z > floor)
+             floor = legs[i].endpoint.z;
+    }
+    return floor;
 }

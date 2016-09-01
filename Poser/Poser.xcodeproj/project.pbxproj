@@ -18,6 +18,8 @@
 		5B3B5C4C1B2E58FE00A25C19 /* Leg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B3B5BD81B2E58FE00A25C19 /* Leg.cpp */; };
 		5B3B5C4E1B2E5BAF00A25C19 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B3B5C4D1B2E5BAF00A25C19 /* GLKit.framework */; };
 		5B3B5C501B2E5BBB00A25C19 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B3B5C4F1B2E5BBB00A25C19 /* OpenGLES.framework */; };
+		5B4486CF1D67D51E0002C0D1 /* PickerViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5B4486CD1D67D51E0002C0D1 /* PickerViewController.mm */; };
+		5B4486D01D67D51E0002C0D1 /* PickerViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5B4486CE1D67D51E0002C0D1 /* PickerViewController.xib */; };
 		5B6689701D4AFD7A00FC790A /* hex_pieces.obj in Resources */ = {isa = PBXBuildFile; fileRef = 5B66896F1D4AFD7A00FC790A /* hex_pieces.obj */; };
 		5BCD2BAC1D4D9BAC00F44F45 /* down_left-G.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BCD2B9F1D4D9BAC00F44F45 /* down_left-G.png */; };
 		5BCD2BAD1D4D9BAC00F44F45 /* down_right-G.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BCD2BA01D4D9BAC00F44F45 /* down_right-G.png */; };
@@ -54,6 +56,9 @@
 		5B3B5BDA1B2E58FE00A25C19 /* nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nuke.h; sourceTree = "<group>"; };
 		5B3B5C4D1B2E5BAF00A25C19 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		5B3B5C4F1B2E5BBB00A25C19 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		5B4486CC1D67D51E0002C0D1 /* PickerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PickerViewController.h; sourceTree = "<group>"; };
+		5B4486CD1D67D51E0002C0D1 /* PickerViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PickerViewController.mm; sourceTree = "<group>"; };
+		5B4486CE1D67D51E0002C0D1 /* PickerViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PickerViewController.xib; sourceTree = "<group>"; };
 		5B66896F1D4AFD7A00FC790A /* hex_pieces.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = hex_pieces.obj; sourceTree = "<group>"; };
 		5BCD2B9F1D4D9BAC00F44F45 /* down_left-G.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "down_left-G.png"; sourceTree = "<group>"; };
 		5BCD2BA01D4D9BAC00F44F45 /* down_right-G.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "down_right-G.png"; sourceTree = "<group>"; };
@@ -118,6 +123,9 @@
 				5B3B5AB21B2E474200A25C19 /* Shader.vsh */,
 				5B3B5AB41B2E474200A25C19 /* GameViewController.h */,
 				5B3B5AB51B2E474200A25C19 /* GameViewController.mm */,
+				5B4486CC1D67D51E0002C0D1 /* PickerViewController.h */,
+				5B4486CD1D67D51E0002C0D1 /* PickerViewController.mm */,
+				5B4486CE1D67D51E0002C0D1 /* PickerViewController.xib */,
 				5B3B5AB71B2E474200A25C19 /* Main.storyboard */,
 				5BD7DD7F1D4D8D39009E227C /* Media.xcassets */,
 				5B3B5AA91B2E474200A25C19 /* Supporting Files */,
@@ -236,6 +244,7 @@
 				5BCD2BB11D4D9BAC00F44F45 /* up_right-G.png in Resources */,
 				5BD7DD801D4D8D39009E227C /* Media.xcassets in Resources */,
 				5B3B5AB11B2E474200A25C19 /* Shader.fsh in Resources */,
+				5B4486D01D67D51E0002C0D1 /* PickerViewController.xib in Resources */,
 				5BCD2BB01D4D9BAC00F44F45 /* up_left-G.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -252,6 +261,7 @@
 				5B3B5AB61B2E474200A25C19 /* GameViewController.mm in Sources */,
 				5B3B5C4B1B2E58FE00A25C19 /* JointServo.cpp in Sources */,
 				5B3B5AAC1B2E474200A25C19 /* main.m in Sources */,
+				5B4486CF1D67D51E0002C0D1 /* PickerViewController.mm in Sources */,
 				5B3B5C4A1B2E58FE00A25C19 /* Hexapod.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

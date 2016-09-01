@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Poser/GameViewController.mm"
-            timestampString = "491627984.671498"
+            timestampString = "493696816.144742"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "561"
-            endingLineNumber = "561"
+            startingLineNumber = "562"
+            endingLineNumber = "562"
             landmarkName = "-setupGL"
             landmarkType = "5">
          </BreakpointContent>

@@ -8,7 +8,7 @@
 
 #include "JointServo.hpp"
 #include "Hexapod.hpp"
-#include "nuke.h"
+
 #include <GLKit/GLKMatrix4.h>
 
 void JointServo::setServoNumber(int servoNumber)
@@ -23,30 +23,27 @@ void JointServo::setServoNumber(int servoNumber)
     nextJoint   = NULL;
 }
 
-GLKMatrix4 JointServo::getModelViewMatrix()
+void JointServo::set_ikSolution(float angle)
 {
-    return modelViewMatrix;
-}
-
-void JointServo::update(bool forward)
-{
-    if (!forward)
-    {
-        currentAngle = ikSolution;
-    }
-    else
-    {
-        currentAngle = 0.0;
-    }
-    
-    if (ikSolution <= minAngle || ikSolution >= maxAngle)
+    if (isnan(angle) || angle <= minAngle || angle >= maxAngle)
     {
         servoOOR[myServoId] = 1;
     }
     else
     {
         servoOOR[myServoId] = 0;
+        ikSolution = angle;
     }
+}
+
+GLKMatrix4 JointServo::getModelViewMatrix()
+{
+    return modelViewMatrix;
+}
+
+void JointServo::update()
+{
+    currentAngle = ikSolution;
     
     modelViewMatrix = GLKMatrix4Identity;
     
@@ -72,7 +69,7 @@ void JointServo::update(bool forward)
             break;
         default:
 
-            boneEnd = GLKVector4Make(0, L_TIBIA * cosf(TIBIA_ANGLE), L_TIBIA * sinf(TIBIA_ANGLE), 1.0);
+            boneEnd = GLKVector4Make(0, L_TIBIA * cosf(-TIBIA_ANGLE), L_TIBIA * sinf(-TIBIA_ANGLE), 1.0);
             modelViewMatrix = GLKMatrix4RotateX(modelViewMatrix, currentAngle);
             modelViewMatrix = GLKMatrix4Multiply(originTransform, modelViewMatrix);
             fkEndpoint = GLKMatrix4MultiplyVector4(modelViewMatrix, boneEnd);

@@ -27,6 +27,8 @@ public:
     void reset(int leg_number);
     
     GLKMatrix4 getMatrix(int i);
+    float getFloor();
+    bool getSelected(int servo);
 };
 
 extern Leg legs[LEG_COUNT];

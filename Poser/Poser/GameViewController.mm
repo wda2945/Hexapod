@@ -7,6 +7,7 @@
 //
 
 #import "GameViewController.h"
+#import "PickerViewController.h"
 #import <OpenGLES/ES2/glext.h>
 #import "Hexapod.hpp"
 #include <vector>
@@ -26,7 +27,7 @@ enum
     UNIFORM_PROJECTION_MATRIX,
     UNIFORM_MODELVIEW_MATRIX,
     UNIFORM_NORMAL_MATRIX,
-    UNIFORM_SELECTED_LEG,
+    UNIFORM_SELECTED_SHAPE,
     UNIFORM_OOR,
     NUM_UNIFORMS
 };
@@ -51,26 +52,40 @@ enum
     GLKMatrix4 _projectionMatrix;
     GLKMatrix4 _modelViewMatrix[MATRIX_COUNT];
     GLKMatrix3 _normalMatrix[MATRIX_COUNT];
+    int        selectedShape[MATRIX_COUNT];
+    
+    GLKMatrix4 baseModelViewMatrix;
+    float aspectRatio;
     
     GLuint _vertexArray;
     GLuint _vertexBuffer;
     
     CGPoint panBegan;
+    int     panTouches;
     CGPoint panBeganViewRotation;
     CGPoint viewRotation;
     
     GLKVector3 panBeganBodyOffset;
     GLKVector3 panBeganBodyRotation;
-    GLKVector4 panBeganLegEndpoint;
-    GLKVector4 panNewLegEndpoint;
+    GLKVector4 panBeganLegEndpoint[6];
     
     int triangle_vertex_count;
     int firstFace[MATRIX_COUNT];
     int faceCount[MATRIX_COUNT];
     
     UIButton *activeButton;
-    int selectedTibia;
-    int selectedLeg;
+    bool bodyRotateActive;
+    
+    UIButton *legButtons[6];
+    
+    __weak IBOutlet UIButton *bodyTranslate;
+    __weak IBOutlet UIButton *bodyRotate;
+    __weak IBOutlet UIButton *RFbutton;
+    __weak IBOutlet UIButton *RMbutton;
+    __weak IBOutlet UIButton *RRbutton;
+    __weak IBOutlet UIButton *LFbutton;
+    __weak IBOutlet UIButton *LMbutton;
+    __weak IBOutlet UIButton *LRbutton;
     __weak IBOutlet UILabel *RFC;
     __weak IBOutlet UILabel *RFF;
     __weak IBOutlet UILabel *RFT;
@@ -90,49 +105,59 @@ enum
     __weak IBOutlet UILabel *LRF;
     __weak IBOutlet UILabel *LRT;
     __weak IBOutlet UIButton *reset_button;
-    __weak IBOutlet UITextField *textField;
-    __weak IBOutlet UIButton *view_button;
-    __weak IBOutlet UILabel *fileError;
+    __weak IBOutlet UILabel *lblFilename;
+    
+    PickerViewController *pickerView;
 }
 
-- (IBAction)textEditingDidEnd:(id)sender;
-- (IBAction)resetButton:(id)sender;
-- (IBAction)openButton:(id)sender;
-- (IBAction)saveButton:(id)sender;
+- (IBAction)resetButton:(UIButton*)sender;
+- (IBAction)openButton:(UIButton*)sender;
+- (IBAction)saveButton:(UIButton*)sender;
+- (IBAction)translateButton:(UIButton*)sender;
+- (IBAction)rotateButton:(UIButton*)sender;
 
 @property (strong, nonatomic) EAGLContext *context;
 @property (strong, nonatomic) GLKBaseEffect *effect;
 
-- (IBAction)lf_button:(UIButton *)sender;
-- (IBAction)lm_button:(UIButton *)sender;
-- (IBAction)lr_button:(UIButton *)sender;
-- (IBAction)rf_button:(UIButton *)sender;
-- (IBAction)rm_button:(UIButton *)sender;
-- (IBAction)rr_button:(UIButton *)sender;
-- (IBAction)viewButton:(UIButton *)sender;
+- (IBAction) lf_button:(UIButton *)sender;
+- (IBAction) lm_button:(UIButton *)sender;
+- (IBAction) lr_button:(UIButton *)sender;
+- (IBAction) rf_button:(UIButton *)sender;
+- (IBAction) rm_button:(UIButton *)sender;
+- (IBAction) rr_button:(UIButton *)sender;
 
-- (IBAction)body_button:(UIButton *)sender;
-- (IBAction)body_rot:(id)sender;
+- (void) setupGL;
+- (void) tearDownGL;
 
-- (void)setupGL;
-- (void)tearDownGL;
-
-- (BOOL)loadShaders;
-- (BOOL)compileShader:(GLuint *)shader type:(GLenum)type file:(NSString *)file;
-- (BOOL)linkProgram:(GLuint)prog;
-- (BOOL)validateProgram:(GLuint)prog;
+- (BOOL) loadShaders;
+- (BOOL) compileShader:(GLuint *)shader type:(GLenum)type file:(NSString *)file;
+- (BOOL) linkProgram:(GLuint)prog;
+- (BOOL) validateProgram:(GLuint)prog;
 
 - (void) panAction: (UIPanGestureRecognizer*) pan;
-- (void) updateHUD;
+- (void) updateLeg: (int) leg selected: (bool) selected;
+- (void) unselectAll;
 
 @end
 
 @implementation GameViewController
 
+GameViewController* gameViewController;
+
++ (GameViewController*) getGameViewController
+{
+    return gameViewController;
+}
+
+- (void) setFilename: (NSString*) fileName
+{
+    lblFilename.text = fileName;
+}
+
 - (void)viewDidLoad
 {
+    gameViewController = self;
     activeButton = nil;
-    selectedTibia = -1;
     viewRotation = CGPointZero;
     
     [super viewDidLoad];
@@ -146,14 +171,27 @@ enum
     glkView.context = self.context;
     glkView.drawableDepthFormat = GLKViewDrawableDepthFormat24;
     
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapAction:)];
+     [self.view addGestureRecognizer:tap];
+    
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panAction:)];
-    pan.maximumNumberOfTouches = 1;
+    pan.maximumNumberOfTouches = 4;
     pan.minimumNumberOfTouches = 1;
     [self.view addGestureRecognizer:pan];
     
+    legButtons[RIGHT_FRONT] = RFbutton;
+    legButtons[RIGHT_MIDDLE] = RMbutton;
+    legButtons[RIGHT_REAR] = RRbutton;
+    legButtons[LEFT_FRONT] = LFbutton;
+    legButtons[LEFT_MIDDLE] = LMbutton;
+    legButtons[LEFT_REAR] = LRbutton;
+    
     [self setupGL];
-    [self viewButton:view_button];
     [self resetButton:nil];
+    lblFilename.text = @"unnamed";
+    [self translateButton: bodyTranslate];
+    
+    pickerView = [[PickerViewController alloc] initWithNibName:@"PickerViewController" bundle:NULL];
 }
 
 - (void)dealloc
@@ -187,193 +225,135 @@ enum
     return YES;
 }
 
-- (IBAction)viewButton:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = -1;
-    selectedLeg = -1;
-    reset_button.titleLabel.text = @"Reset all";
+- (void) updateLeg: (int) leg selected: (bool) selected
+{
+    if (selected)
+    {
+        legs[leg].selected = false;
+        legButtons[leg].selected = NO;
+    }
+    else
+    {
+        legs[leg].selected = true;
+        legButtons[leg].selected = YES;
+    }
 }
 
 - (IBAction)rf_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[RIGHT_FRONT][2];
-    selectedLeg = RIGHT_FRONT;
-    reset_button.titleLabel.text = @"Rst RF";
+    [self updateLeg: RIGHT_FRONT selected: sender.selected];
 }
 
 - (IBAction)rm_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[RIGHT_MIDDLE][2];
-    selectedLeg = RIGHT_MIDDLE;
-    reset_button.titleLabel.text = @"Rst RM";
+    [self updateLeg: RIGHT_MIDDLE selected: sender.selected];
 }
 
 - (IBAction)rr_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[RIGHT_REAR][2];
-    selectedLeg = RIGHT_REAR;
-    reset_button.titleLabel.text = @"Rst RR";
+    [self updateLeg: RIGHT_REAR selected: sender.selected];
 }
 
 - (IBAction)lf_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[LEFT_FRONT][2];
-    selectedLeg = LEFT_FRONT;
-    reset_button.titleLabel.text = @"Rst LF";
+    [self updateLeg: LEFT_FRONT selected: sender.selected];
 }
 
 - (IBAction)lm_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[LEFT_MIDDLE][2];
-    selectedLeg = LEFT_MIDDLE;
-    reset_button.titleLabel.text = @"Rst LM";
+    [self updateLeg: LEFT_MIDDLE selected: sender.selected];
 }
 
 - (IBAction)lr_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = servoIds[LEFT_REAR][2];
-    selectedLeg = LEFT_REAR;
-    reset_button.titleLabel.text = @"Rst LR";
+    [self updateLeg: LEFT_REAR selected: sender.selected];
 }
 
-- (IBAction)body_button:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = 0;
-    selectedLeg = -2;
-    reset_button.titleLabel.text = @"Rst xyz";
-}
-
-- (IBAction)body_rot:(UIButton *)sender {
-    fileError.text = @"";
-    if (activeButton) activeButton.selected = NO;
-    activeButton = sender;
-    sender.selected = YES;
-    selectedTibia = 0;
-    selectedLeg = -3;
-    reset_button.titleLabel.text = @"Rst rot";
-}
-
-- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField
+- (void) unselectAll
 {
-    return YES;
+    for (int i=0; i<6; i++)
+    {
+        legs[i].selected = false;
+        legButtons[i].selected = NO;
+    }
 }
 
-- (IBAction)textEditingDidEnd:(id)sender {
-    [sender resignFirstResponder];
-}
-
-- (IBAction)resetButton:(id)sender {
-    fileError.text = @"";
-    theHexapod.reset(selectedLeg);
+- (IBAction)resetButton:(UIButton*)sender {
+    theHexapod.reset(-1);
     [self updateHUD];
 }
 
-- (IBAction)openButton:(id)sender {
-    NSString *homeDirectory = NSHomeDirectory();
-    NSString *docDirectory = [homeDirectory stringByAppendingPathComponent:@"Documents"];
-    NSString *docPath = [docDirectory stringByAppendingPathComponent:textField.text];
+- (IBAction)openButton:(UIButton*)sender {
+    [pickerView initForOpen];
     
-    FILE *file = fopen(docPath.UTF8String, "r");
+    pickerView.modalPresentationStyle = UIModalPresentationFormSheet;
     
-    if (file)
-    {
-        fileError.text = @"";
-
-        char *lineptr = (char*) calloc(100,1);
-        size_t n = 100;
-        ssize_t count = 0;
-        
-        while (count >= 0)
-        {
-            count = getline(&lineptr, &n, file);
-            
-            if (count == 0) continue;
-            
-            char lineType[5] = "";
-            
-            sscanf(lineptr, "%1s", lineType);
-        
-            if (strcmp(lineType, "B") == 0)
-            {
-                GLKVector3 location, rotation;
-                sscanf(lineptr, "%1s %f %f %f %f %f %f", lineType,
-                       &location.x, &location.y, &location.z,
-                       &rotation.x, &rotation.y, &rotation.z);
-                theHexapod.bodyOffset = location;
-                theHexapod.bodyRotation = rotation;
-            }
-            else if (strcmp(lineType, "L") == 0)
-            {
-                int leg;
-                GLKVector4 endpoint;
-                sscanf(lineptr, "%1s %i %f %f %f ", lineType, &leg,
-                       &endpoint.x, &endpoint.y, &endpoint.z);
-                endpoint.w = 1;
-                legs[leg].endpoint = endpoint;
-            }
-        }
-        fclose(file);
-        [self updateHUD];
-    }
-    else{
-        fileError.text = [NSString stringWithFormat:@"%s", strerror(errno)];
-    }
+    // Get the popover presentation controller and configure it.
+    UIPopoverPresentationController *presentationController = [pickerView popoverPresentationController];
+    presentationController.sourceView = self.view;
+    
+    [self presentViewController:pickerView animated: YES completion: nil];
 }
 
-- (IBAction)saveButton:(id)sender {
-    NSString *homeDirectory = NSHomeDirectory();
-    NSString *docDirectory = [homeDirectory stringByAppendingPathComponent:@"Documents"];
-    NSString *docPath = [docDirectory stringByAppendingPathComponent:textField.text];
+- (IBAction)saveButton:(UIButton*)sender {
+    [pickerView initForSave: lblFilename.text];
     
-    FILE *file = fopen(docPath.UTF8String, "w");
+    pickerView.modalPresentationStyle = UIModalPresentationFormSheet;
     
-    if (file)
+    // Get the popover presentation controller and configure it.
+    UIPopoverPresentationController *presentationController = [pickerView popoverPresentationController];
+    presentationController.sourceView = self.view;
+    
+    [self presentViewController:pickerView animated: YES completion: nil];
+}
+
+- (IBAction)translateButton:(UIButton*)sender {
+    bodyRotateActive = NO;
+    bodyTranslate.selected = YES;
+    bodyRotate.selected = NO;
+}
+
+- (IBAction)rotateButton:(UIButton*)sender {
+    bodyRotateActive = YES;
+    bodyTranslate.selected = NO;
+    bodyRotate.selected = YES;
+}
+
+- (void) tapAction: (UITapGestureRecognizer*) tap
+{
+    if (tap.state == UIGestureRecognizerStateEnded)
     {
-        fileError.text = @"";
+        [self unselectAll];
         
-        fprintf(file, "B %f %f %f %f %f %f\n",
-               theHexapod.bodyOffset.x,
-               theHexapod.bodyOffset.y,
-               theHexapod.bodyOffset.z,
-               theHexapod.bodyRotation.x,
-               theHexapod.bodyRotation.y,
-               theHexapod.bodyRotation.z);
+        CGPoint tapLocation = [tap locationInView:self.view];
+
+        NSLog(@"Tap Location: %f, %f", tapLocation.x, tapLocation.y);
         
-        for (int i=0; i< 6; i++)
+        CGPoint viewspace = CGPointMake(tapLocation.x - glkView.bounds.size.width/2, -tapLocation.y + glkView.bounds.size.height/2);
+        
+//        CGPoint viewspace = CGPointMake((2 * tapLocation.x / glkView.bounds.size.width) - 1,
+//                                        -((2 * tapLocation.y / glkView.bounds.size.height) - 1));
+        NSLog(@"Viewspace: %f, %f", viewspace.x, viewspace.y);
+        
+        double dsq = 1000000;
+        int leg = -1;
+        for (int i=0; i<6; i++)
         {
-            fprintf(file, "L %i %f %f %f\n", i,
-                   legs[i].endpoint.x,
-                   legs[i].endpoint.y,
-                   legs[i].endpoint.z);
+            //adjust for axes differences
+            GLKVector4 adjEndpoint;
+            adjEndpoint.x =  legs[i].tibia.fkEndpoint.x;
+            adjEndpoint.y =  legs[i].tibia.fkEndpoint.y;
+            adjEndpoint.z = -legs[i].tibia.fkEndpoint.z;
+            
+            //convert endpoint to screen coordinates
+            GLKVector4 ep = GLKMatrix4MultiplyVector4(GLKMatrix4Multiply(_projectionMatrix, baseModelViewMatrix), adjEndpoint);
+            
+            double range = (ep.x - viewspace.x)*(ep.x - viewspace.x)
+            + (ep.y - viewspace.y)*(ep.y - viewspace.y);
+            
+            NSLog(@"Leg %i @ %f, %f, %f. screen: %f, %f", i, adjEndpoint.x, adjEndpoint.y, adjEndpoint.z, ep.x, ep.y);
+            
+            if (range < dsq)
+            {
+                dsq = range;
+                leg = i;
+            }
         }
-        fclose(file);
-    }
-    else{
-        fileError.text = [NSString stringWithFormat:@"%s", strerror(errno)];
+        if (dsq < 300 && leg >= 0) legs[leg].selected = true;
     }
 }
 
@@ -382,48 +362,69 @@ enum
     switch(pan.state)
     {
         case UIGestureRecognizerStateBegan:
+            panTouches = (int) pan.numberOfTouches;
             panBegan = [pan translationInView:self.view];
-            switch (selectedLeg)
+            switch (panTouches)
         {
-            case -1:    //view
+            case 2:
+                for (int i=0; i< 6; i++)
+                {
+                    panBeganLegEndpoint[i]  = legs[i].endpoint;
+                }
+                break;
+            case 1:     //view
                 panBeganViewRotation = viewRotation;
                 break;
-            case -2:    //body xyz
-                panBeganBodyOffset   = theHexapod.bodyOffset;
-                break;
-            case -3:    //body rot
-                panBeganBodyRotation = theHexapod.bodyRotation;
-                break;
-            default:    //leg
-                panNewLegEndpoint = panBeganLegEndpoint  = legs[selectedLeg].endpoint;
+            case 3:
+                if (bodyRotateActive)
+                {
+                    //body rot
+                    panBeganBodyRotation = theHexapod.bodyRotation;
+                }
+                else
+                {
+                    //body xyz
+                    panBeganBodyOffset   = theHexapod.bodyOffset;
+                }
                 break;
         }
             break;
         case UIGestureRecognizerStateChanged:
         {
             CGPoint panChanged = [pan translationInView:self.view];
-            float xChange = panBegan.x - panChanged.x;
-            float yChange = panBegan.y - panChanged.y;
-            switch (selectedLeg)
+            float xChange = panChanged.x - panBegan.x;
+            float yChange = panChanged.y - panBegan.y;
+            switch (panTouches)
             {
-                case -1:    //view
-                    viewRotation.x = panBeganViewRotation.x - xChange / 100;
+                case 2:
+                    for (int i=0; i< 6; i++)
+                    {
+                        if (legs[i].selected)
+                        {
+                            GLKVector4 panNewLegEndpoint;
+                            panNewLegEndpoint.x = panBeganLegEndpoint[i].x + cosf(viewRotation.x) * xChange / 2;
+                            panNewLegEndpoint.y = panBeganLegEndpoint[i].y + sinf(viewRotation.x) * xChange / 2;
+                            panNewLegEndpoint.z = panBeganLegEndpoint[i].z + yChange / 2;
+                            legs[i].newEndpoint(panNewLegEndpoint);
+                        }
+                    }
                     break;
-                case -2:    //body xyz
-                    theHexapod.bodyOffset.z = panBeganBodyOffset.z + yChange / 2;
-                    theHexapod.bodyOffset.x = panBeganBodyOffset.x - cosf(viewRotation.x) * xChange / 2;
-                    theHexapod.bodyOffset.y = panBeganBodyOffset.y + sinf(viewRotation.x) * xChange / 2;
+                case 1:     //view
+                    viewRotation.x = panBeganViewRotation.x + xChange / 100;
                     break;
-                case -3:    //body rot
-                    theHexapod.bodyRotation.z = panBeganBodyRotation.z - xChange / 500;
-                    theHexapod.bodyRotation.x = panBeganBodyRotation.x + cosf(viewRotation.x) * yChange / 500;
-                    theHexapod.bodyRotation.y = panBeganBodyRotation.y + sinf(viewRotation.x) * yChange / 500;
-                    break;
-                default:    //leg
-                    panNewLegEndpoint.z = panBeganLegEndpoint.z + yChange / 2;
-                    panNewLegEndpoint.x = panBeganLegEndpoint.x - cosf(viewRotation.x) * xChange / 2;
-                    panNewLegEndpoint.y = panBeganLegEndpoint.y + sinf(viewRotation.x) * xChange / 2;
-                    legs[selectedLeg].newEndpoint(panNewLegEndpoint);
+                case 3:     //body rot
+                    if (bodyRotateActive)
+                    {
+                        theHexapod.bodyRotation.z = panBeganBodyRotation.z + xChange / 500;
+                        theHexapod.bodyRotation.x = panBeganBodyRotation.x + cosf(viewRotation.x) * yChange / 500;
+                        theHexapod.bodyRotation.y = panBeganBodyRotation.y - sinf(viewRotation.x) * yChange / 500;
+                    }
+                    else
+                    {
+                        theHexapod.bodyOffset.z = panBeganBodyOffset.z - yChange / 2;
+                        theHexapod.bodyOffset.x = panBeganBodyOffset.x + cosf(viewRotation.x) * xChange / 2;
+                        theHexapod.bodyOffset.y = panBeganBodyOffset.y - sinf(viewRotation.x) * xChange / 2;
+                    }
                     break;
             }
             [self updateHUD];
@@ -776,22 +777,11 @@ enum
 
 - (void)update
 {
-    for (int i=0; i<6; i++)
-    {
-        
-//        NSLog(@"Leg %i coxa=%f, femur=%f, tibia=%f", i,
-//              legs[i].coxa.ikSolution, legs[i].femur.ikSolution,legs[i].tibia.ikSolution);
-        
-//        NSLog(@"legs[%i].endpoint.x = %f;", i, legs[i].tibia.fkEndpoint.x);
-//        NSLog(@"legs[%i].endpoint.y = %f;", i, legs[i].tibia.fkEndpoint.y);
-//        NSLog(@"legs[%i].endpoint.z = %f;", i, legs[i].tibia.fkEndpoint.z);
-    }
+    aspectRatio = fabs(glkView.bounds.size.width / glkView.bounds.size.height);
     
-    float aspect = fabs(glkView.bounds.size.width / glkView.bounds.size.height);
+    _projectionMatrix = GLKMatrix4MakePerspective(GLKMathDegreesToRadians(65.0f), aspectRatio, 0.1f, 1500.0f);
     
-    _projectionMatrix = GLKMatrix4MakePerspective(GLKMathDegreesToRadians(65.0f), aspect, 0.1f, 1500.0f);
-    
-    GLKMatrix4 baseModelViewMatrix = GLKMatrix4MakeTranslation(0.0f, 0.0f, -600.0f);
+    baseModelViewMatrix = GLKMatrix4MakeTranslation(0.0f, 0.0f, -600.0f);
     baseModelViewMatrix = GLKMatrix4Rotate(baseModelViewMatrix, -45.0, 1.0f, 0.0f, 0.0f);
     baseModelViewMatrix = GLKMatrix4Rotate(baseModelViewMatrix, viewRotation.x, 0.0f, 0.0f, 1.0f);
     
@@ -800,9 +790,11 @@ enum
         GLKMatrix4 modelViewMatrix = theHexapod.getMatrix(i);
         _modelViewMatrix[i] = GLKMatrix4Multiply(baseModelViewMatrix, modelViewMatrix);
         _normalMatrix[i] = GLKMatrix3InvertAndTranspose(GLKMatrix4GetMatrix3(_modelViewMatrix[i]), NULL);
+        selectedShape[i] = theHexapod.getSelected(i);
     }
-    _modelViewMatrix[MATRIX_COUNT-1] = baseModelViewMatrix;
-    _normalMatrix[MATRIX_COUNT-1] = GLKMatrix3InvertAndTranspose(GLKMatrix4GetMatrix3(baseModelViewMatrix), NULL);
+    
+    _modelViewMatrix[MATRIX_COUNT-1] = GLKMatrix4Translate(baseModelViewMatrix, 0.0, 0.0, -theHexapod.getFloor());
+    _normalMatrix[MATRIX_COUNT-1] = GLKMatrix3InvertAndTranspose(GLKMatrix4GetMatrix3(_modelViewMatrix[MATRIX_COUNT-1]), NULL);
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
@@ -818,7 +810,8 @@ enum
     
     glUniformMatrix4fv(uniforms[UNIFORM_MODELVIEW_MATRIX], MATRIX_COUNT, 0, _modelViewMatrix[0].m);
     glUniformMatrix3fv(uniforms[UNIFORM_NORMAL_MATRIX], MATRIX_COUNT, 0, _normalMatrix[0].m);
-    glUniform1i(uniforms[UNIFORM_SELECTED_LEG], selectedTibia);
+    
+    glUniform1iv(uniforms[UNIFORM_SELECTED_SHAPE], MATRIX_COUNT, selectedShape);
     glUniform1iv(uniforms[UNIFORM_OOR], MATRIX_COUNT, servoOOR);
  
     glDrawArrays(GL_TRIANGLES, 0, triangle_vertex_count);
@@ -887,7 +880,7 @@ enum
     uniforms[UNIFORM_PROJECTION_MATRIX] = glGetUniformLocation(_program, "projectionMatrix");
     uniforms[UNIFORM_MODELVIEW_MATRIX] = glGetUniformLocation(_program, "modelViewMatrix");
     uniforms[UNIFORM_NORMAL_MATRIX] = glGetUniformLocation(_program, "normalMatrix");
-    uniforms[UNIFORM_SELECTED_LEG] = glGetUniformLocation(_program, "selectedTibia");
+    uniforms[UNIFORM_SELECTED_SHAPE] = glGetUniformLocation(_program, "selectedShape");
     uniforms[UNIFORM_OOR] = glGetUniformLocation(_program, "OOR");
     
     // Release vertex and fragment shaders.

@@ -11,4 +11,9 @@
 
 @interface GameViewController : GLKViewController
 
++ (GameViewController*) getGameViewController;
+- (void) updateHUD;
+
+- (void) setFilename: (NSString*) fileName;
+
 @end

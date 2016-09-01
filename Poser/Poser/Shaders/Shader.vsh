@@ -17,7 +17,7 @@ varying lowp vec4 colorVarying;
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix[MATRIX_COUNT];
 uniform mat3 normalMatrix[MATRIX_COUNT];
-uniform int selectedTibia;
+uniform int selectedShape[MATRIX_COUNT];
 uniform int OOR[MATRIX_COUNT];
 
 void main()
@@ -41,7 +41,7 @@ void main()
     {
         colorVarying = oorColor * nDotVP;
     }
-    else if (selectedTibia == boneInt)
+    else if (selectedShape[boneInt] == 1)
     {
         colorVarying = hilitColor * nDotVP;
     }
