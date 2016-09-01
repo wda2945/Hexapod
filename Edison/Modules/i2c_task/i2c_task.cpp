@@ -46,7 +46,6 @@ int I2CInit()
 {
 	pthread_t th;
 	i2cDebugFile = fopen_logfile("i2c");
-	DEBUGPRINT("I2C Logfile opened");
 
 	i2c_context = mraa_i2c_init(I2C_BUS);
 	if (!i2c_context)
@@ -73,7 +72,6 @@ int I2CInit()
 
 void *I2CThread(void *arg)
 {
-	struct timespec requested;
 	int imuCount = 0;
 	int battCount = 1;
 
@@ -84,6 +82,8 @@ void *I2CThread(void *arg)
 
 	LSM303Init();		//imu
 	PCF8591Init();		//adc
+
+	LogInfo("i2c thread ready");
 
 	while(1)
 	{
@@ -122,9 +122,7 @@ void *I2CThread(void *arg)
 		}
 
 		//delay
-		requested.tv_sec = 0;
-		requested.tv_nsec = BASE_INTERVAL * 1000000;
-		while (nanosleep(&requested, &requested) != 0);
+		usleep(BASE_INTERVAL * 1000);
 	}
 
 	return NULL;

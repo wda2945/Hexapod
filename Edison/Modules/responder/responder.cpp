@@ -23,7 +23,7 @@ void ResponderProcessMessage(const void *, int);
 
 void register_option(const char *name, int value);
 void register_setting(const char *name, float minV, float maxV, float value);
-void register_condition(int c, const char *name);
+void register_condition(const char *domain, int c, const char *name);
 
 int ResponderInit()
 {
@@ -38,8 +38,16 @@ int ResponderInit()
 
 	sleep(1);
 	//add conditions to registry
-#define CONDITION_MACRO(e, n) register_condition(e, n);
-#include <NotificationConditionsList.h>
+#define CONDITION_MACRO(e, n) register_condition("Status Conditions", e, n);
+#include "messages/NotificationConditionsListStatus.h"
+#undef CONDITION_MACRO
+
+#define CONDITION_MACRO(e, n) register_condition("Prox Conditions", e, n);
+#include "messages/NotificationConditionsListProximity.h"
+#undef CONDITION_MACRO
+
+#define CONDITION_MACRO(e, n) register_condition("Error Conditions", e, n);
+#include "messages/NotificationConditionsListErrors.h"
 #undef CONDITION_MACRO
 
 	ps_subscribe(ANNOUNCEMENTS_TOPIC, ResponderProcessMessage);
@@ -55,7 +63,7 @@ void ResponderProcessMessage(const void *_msg, int len)
 
 	case PING_MSG:
 	{
-		DEBUGPRINT("Ping msg\n");
+		DEBUGPRINT("Ping msg");
 		psMessage_t msg2;
 		psInitPublish(msg2, PING_RESPONSE);
 		RouteMessage(msg2);
@@ -108,7 +116,7 @@ void register_setting(const char *name, float minV, float maxV, float value) {
 }
 
 
-void register_condition(int c, const char *name) {
+void register_condition(const char *domain, int c, const char *name) {
 
 	if (c == 0) return;	//null
 
@@ -118,12 +126,12 @@ void register_condition(int c, const char *name) {
 	registry_value.int_value = c;
 	registry_value.flags = (ps_registry_flags_t) 0;
 
-	if (ps_registry_set_new("Conditions", name, registry_value) == PS_OK)
+	if (ps_registry_set_new(domain, name, registry_value) == PS_OK)
 	{
-		DEBUGPRINT("Registered condition %i = %s", c, name);
+		DEBUGPRINT("Registered condition %i = %s/%s", c, domain, name);
 	}
 	else
 	{
-		ERRORPRINT("Registering condition %i = %s failed", c, name);
+		ERRORPRINT("Registering condition %i = %s/%s", c, domain, name);
 	}
 }

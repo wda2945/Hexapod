@@ -78,15 +78,15 @@ Orientation_struct orientation;
 int NavigatorInit()
 {
 	navDebugFile = fopen_logfile("navigator");
-	DEBUGPRINT("Navigator Logfile opened\n");
+	DEBUGPRINT("Navigator Logfile opened");
 
-	ps_registry_add_new("pose", "latitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
-	ps_registry_add_new("pose", "longitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
-	ps_registry_add_new("pose", "heading", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Pose", "Latitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Pose", "Longitude", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Pose", "Heading", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
 
-	ps_registry_set_observer("IMU", "heading", ProcessImuUpdate, &IMU_raw_heading);
-	ps_registry_set_observer("IMU", "pitch", ProcessImuUpdate, &IMU_raw_pitch);
-	ps_registry_set_observer("IMU", "roll", ProcessImuUpdate, &IMU_raw_roll);
+	ps_registry_set_observer("IMU", "Heading", ProcessImuUpdate, &IMU_raw_heading);
+	ps_registry_set_observer("IMU", "Pitch", ProcessImuUpdate, &IMU_raw_pitch);
+	ps_registry_set_observer("IMU", "Roll", ProcessImuUpdate, &IMU_raw_roll);
 
 	ps_subscribe(ODO_TOPIC, NavigatorProcessMessage);
 
@@ -95,7 +95,7 @@ int NavigatorInit()
 	int s = pthread_create(&thread, NULL, NavigatorThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("NavigatorThread create failed. %i\n", s);
+		ERRORPRINT("NavigatorThread create failed. %i", s);
 		return -1;
 	}
 
@@ -169,7 +169,7 @@ void *NavigatorThread(void *arg)
 			predict(HeadingFilter);
 			estimate(HeadingFilter);
 
-			DEBUGPRINT("Filtered heading: %i\n", GET_HEADING);
+			DEBUGPRINT("Filtered heading: %i", GET_HEADING);
 		}
 
 		if (new_ODO_data)
@@ -184,7 +184,7 @@ void *NavigatorThread(void *arg)
 			predict(HeadingFilter);
 			estimate(HeadingFilter);
 
-			DEBUGPRINT("ODO heading: %i\n", GET_HEADING);
+			DEBUGPRINT("ODO heading: %i", GET_HEADING);
 
 			float hRadians = DEGREESTORADIANS(GET_HEADING);
 
@@ -192,7 +192,7 @@ void *NavigatorThread(void *arg)
 			position.latitude += (ODO_report.xMovement * cosf(hRadians));
 			position.longitude += (ODO_report.yMovement * sinf(hRadians));
 
-			DEBUGPRINT("ODO location: %f, %f\n",
+			DEBUGPRINT("ODO location: %f, %f",
 					position.latitude,
 					position.longitude);
 		}
@@ -202,11 +202,11 @@ void *NavigatorThread(void *arg)
 			IMUGood = false;
 		}
 
-		ps_registry_set_real("pose", "latitude", position.latitude);
-		ps_registry_set_real("pose", "longitude", position.longitude);
-		ps_registry_set_int("pose", "heading", GET_HEADING);
+		ps_registry_set_real("Pose", "Latitude", position.latitude);
+		ps_registry_set_real("Pose", "Longitude", position.longitude);
+		ps_registry_set_int("Pose", "Heading", GET_HEADING);
 
-			DEBUGPRINT("NAV; Pose Msg: N=%f, E=%f, H=%i\n",
+			DEBUGPRINT("NAV; Pose Msg: N=%f, E=%f, H=%i",
 					position.latitude, position.longitude,
 					orientation.heading )
 

@@ -38,8 +38,8 @@ int lastChannel = -1;
 //initialize ADC
 int PCF8591Init()
 {
-	ps_registry_add_new("power", "volts", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
-	ps_registry_add_new("power", "status", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Power", "Volts", PS_REGISTRY_REAL_TYPE, PS_REGISTRY_SRC_WRITE);
+	ps_registry_add_new("Power", "Status", PS_REGISTRY_TEXT_TYPE, PS_REGISTRY_SRC_WRITE);
 
 	return 0;
 }
@@ -71,7 +71,7 @@ int PCF8591Read(int channel)
 			else
 			{
 				lastChannel = channel;
-				DEBUGPRINT("ADC: channel: %i selected", channel);
+//				DEBUGPRINT("ADC: channel: %i selected", channel);
 			}
 		}
 
@@ -81,12 +81,15 @@ int PCF8591Read(int channel)
 		{
 			ERRORPRINT("ADC: mraa_i2c_read() - %s", strerror(errno));
 			ps_set_condition(ANALOG_ERROR);
+			ps_cancel_condition(ADC_ONLINE);
+
 			return -1;
 		}
 
 		int adcData = readData[1];
 
 		DEBUGPRINT("ADC %i = 0x%02x", channel, adcData);
+		ps_set_condition(ADC_ONLINE);
 
 		switch (channel)
 		{
@@ -99,26 +102,26 @@ int PCF8591Read(int channel)
 		{
 			float volts = (float) adcData * BATTERY_VOLTS_FACTOR;
 
-			ps_registry_set_real("power", "volts", volts);
+			ps_registry_set_real("Power", "Volts", volts);
 
 			DEBUGPRINT("Battery = %0.1fv", volts);
 
 			if (volts < BATTERY_CRITICAL_VOLTS)
 			{
 				ps_set_condition(BATTERY_CRITICAL);
-				ps_registry_set_text("power", "status", "CRITICAL");
+				ps_registry_set_text("Power", "Status", "CRITICAL");
 			}
 			else if (volts < BATTERY_LOW_VOLTS)
 			{
 				ps_cancel_condition(BATTERY_CRITICAL);
 				ps_set_condition(BATTERY_LOW);
-				ps_registry_set_text("power", "status", "LOW");
+				ps_registry_set_text("Power", "Status", "LOW");
 			}
 			else
 			{
 				ps_cancel_condition(BATTERY_CRITICAL);
 				ps_cancel_condition(BATTERY_LOW);
-				ps_registry_set_text("power", "status", "normal");
+				ps_registry_set_text("Power", "Status", "normal");
 			}
 
 		}

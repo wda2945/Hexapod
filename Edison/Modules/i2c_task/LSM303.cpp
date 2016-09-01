@@ -99,7 +99,7 @@ void LSM303Calibrate()
 		if (LSM303_m.y < LSMmin.y) LSMmin.y = LSM303_m.y;
 		if (LSM303_m.z < LSMmin.z) LSMmin.z = LSM303_m.z;
 
-		printf("max = {%i,%i,%i} min  = {%i,%i,%i}", LSMmax.x,LSMmax.y,LSMmax.z,LSMmin.x,LSMmin.y,LSMmin.z);
+		DEBUGPRINT("imu: max = {%i,%i,%i} min  = {%i,%i,%i}", LSMmax.x,LSMmax.y,LSMmax.z,LSMmin.x,LSMmin.y,LSMmin.z);
 	}
 }
 
@@ -143,9 +143,9 @@ int LSM303Init()
     // MLP = 0 (low power mode off); MD = 00 (continuous-conversion mode)
 	if (LSM303_writeReg(CTRL7, 0x00) < 0) return -1;
 
-	ps_registry_add_new("IMU", "heading", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
-	ps_registry_add_new("IMU", "pitch", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
-	ps_registry_add_new("IMU", "roll", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+	ps_registry_add_new("IMU", "Heading", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+	ps_registry_add_new("IMU", "Pitch", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
+	ps_registry_add_new("IMU", "Roll", PS_REGISTRY_INT_TYPE, PS_REGISTRY_SRC_WRITE | PS_REGISTRY_LOCAL);
 
 	return 0;
 }
@@ -258,12 +258,19 @@ int LSM303Read(void)
 {
 	psMessage_t msg;
 
-	if (LSM303_readAcc() < 0) return -1;
-	if (LSM303_readMag() < 0) return -1;
+	if ((LSM303_readAcc() < 0) || (LSM303_readMag() < 0))
+	{
+		ps_cancel_condition(IMU_ONLINE);
+		ps_set_condition(IMU_ERROR);
+		return -1;
+	}
 
-	ps_registry_set_int("IMU", "heading", LSM303_heading());
-	ps_registry_set_int("IMU", "pitch", LSM303_pitch());
-	ps_registry_set_int("IMU", "roll", LSM303_roll());
+	ps_set_condition(IMU_ONLINE);
+	ps_cancel_condition(IMU_ERROR);
+
+	ps_registry_set_int("IMU", "Heading", LSM303_heading());
+	ps_registry_set_int("IMU", "Pitch", LSM303_pitch());
+	ps_registry_set_int("IMU", "Roll", LSM303_roll());
 
 	DEBUGPRINT("Heading: %0.0f", msg.threeFloatPayload.heading);
 
