@@ -37,6 +37,13 @@ BT.Task:new({
   end
 })
 
+BT.Task:new({
+  name = 'SystemReboot',
+  run = function(self, object)
+  	result(SystemAction(system.SystemReboot))
+  end
+})
+
 
 BT.Task:new({
   name = 'SystemSetResting',

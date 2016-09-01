@@ -29,12 +29,14 @@ end
 
 update = function()
 	if CurrentActivity then
+		Debug("Update call")
+		
 		activityResult = (CurrentActivity):run(CurrentActivityName)
 		
 		if activityResult == 'success' or activityResult == 'fail' then
 			CurrentActivity = Idle;		
 		end
-		if activityResult then Print('Update - ' .. activityResult) else Print('Update ?') end
+		if activityResult then Debug('Update - ' .. activityResult) else Debug('Update ?') end
 		return activityResult
 	else
 		CurrentActivity = Idle;		

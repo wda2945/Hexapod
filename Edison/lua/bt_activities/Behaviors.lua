@@ -8,37 +8,80 @@ BT.Priority:new({
 		}
 });
 
-ReloadAllScripts = BT:new({
-  tree = 'ReloadScripts'
-})
+ReloadScripts = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'ReloadScripts',
+			}
+		})
+});
 
-ActivityList[NextActivity] =  'ReloadAllScripts'
-NextActivity = NextActivity + 1
+SystemPoweroff = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'SystemPoweroff',
+			}
+		})
+});
 
-PowerOff = BT:new({
-  tree = 'SystemPoweroff'
-})
+SystemReboot = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'SystemReboot',
+			}
+		})
+});
 
-ActivityList[NextActivity] =  'PowerOff'
-NextActivity = NextActivity + 1
+SystemSetResting = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'SystemSetResting',
+			}
+		})
+});
 
-Sleep = BT:new({
-  tree = 'SystemSetResting'
-})
-
-ActivityList[NextActivity] =  'Sleep'
-NextActivity = NextActivity + 1
+Stop = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'Stop',
+			}
+		})
+});
 
 Sit = BT:new({
-  tree = 'Sit'
-})
+  tree = BT.Sequence:new({
+		nodes = {
+			'Sit',
+			}
+		})
+});
+
+Stand = BT:new({
+  tree = BT.Sequence:new({
+		nodes = {
+			'Stand',
+			}
+		})
+});
+
+
+ActivityList[NextActivity] =  'ReloadScripts'
+NextActivity = NextActivity + 1
+
+ActivityList[NextActivity] =  'SystemPoweroff'
+NextActivity = NextActivity + 1
+
+ActivityList[NextActivity] =  'SystemReboot'
+NextActivity = NextActivity + 1
+
+ActivityList[NextActivity] =  'SystemSetResting'
+NextActivity = NextActivity + 1
+
+ActivityList[NextActivity] =  'Stop'
+NextActivity = NextActivity + 1
 
 ActivityList[NextActivity] =  'Sit'
 NextActivity = NextActivity + 1
-
-Stand = BT:new({
-  tree = 'Stand'
-})
 
 ActivityList[NextActivity] =  'Stand'
 NextActivity = NextActivity + 1

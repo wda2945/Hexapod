@@ -1,6 +1,7 @@
 --local BT = require('/root/lua/behaviortree/behaviour_tree')
 
 --[[
+	Stop,
 	Stand,
 	Sit,
 	Turn,
@@ -19,13 +20,36 @@
 	SetFastSpeed,
 	SetMediumSpeed,
 	SetLowSpeed,
+	SetPoseMode,
+	SetPoseSlow,
+	SetPoseMedium,
+	SetPoseFast,
+	SetPoseBeat,
+	SetPoseDownbeat,
+	SetPoseUpbeat,
 	EnableFrontCloseStop,
 	DisableFrontCloseStop,
 	EnableRearCloseStop,
 	DisableRearCloseStop,
 	EnableFrontFarStop,
 	DisableFrontFarStop,
-]]
+	
+	ClapOutPose,
+	ClapInPose,
+	BodyLeftPose,
+	BodyRightPose,
+	BodyUpPose,
+	BodyDownPose,
+	DefaultPose,
+	
+--]]
+
+BT.Task:new({
+  name = 'Stop',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.Stop))
+  end
+})
 
 BT.Task:new({
   name = 'Stand',
@@ -119,16 +143,16 @@ BT.Task:new({
 })
 
 BT.Task:new({
-  name = 'MoveForward10',
+  name = 'MoveForward30',
   run = function(self, object)
-  	result(HexapodAction(hexapod.MoveForward10))
+  	result(HexapodAction(hexapod.MoveForward30))
   end
 })
 
 BT.Task:new({
-  name = 'MoveBackward10',
+  name = 'MoveBackward30',
   run = function(self, object)
-  	result(HexapodAction(hexapod.MoveBackward10))
+  	result(HexapodAction(hexapod.MoveBackward30))
   end
 })
 
@@ -153,6 +177,50 @@ BT.Task:new({
   end
 })
 
+BT.Task:new({
+  name = 'SetPoseMode',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseMode))
+  end
+})
+
+BT.Task:new({
+  name = 'SetPoseSlow',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseSlow))
+  end
+})
+BT.Task:new({
+  name = 'SetPoseMedium',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseMedium))
+  end
+})
+BT.Task:new({
+  name = 'SetPoseFast',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseFast))
+  end
+})
+BT.Task:new({
+  name = 'SetPoseBeat',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseBeat))
+  end
+})
+BT.Task:new({
+  name = 'SetPoseDownbeat',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseDownbeat))
+  end
+})
+BT.Task:new({
+  name = 'SetPoseUpbeat',
+  run = function(self, object)
+  	result(HexapodAction(hexapod.SetPoseUpbeat))
+  end
+})
+	
 BT.Task:new({
   name = 'EnableFrontCloseStop',
   run = function(self, object)
@@ -194,3 +262,68 @@ BT.Task:new({
   	result(HexapodAction(hexapod.DisableFrontFarStop))
   end
 })
+
+BT.Task:new({
+  name = 'ClapOutPose',
+  run = function(self, object)
+  	result(HexapodPose('clap_out'))
+  end
+})
+
+BT.Task:new({
+  name = 'ClapInPose',
+  run = function(self, object)
+  	result(HexapodPose('clap_in'))
+  end
+})
+
+BT.Task:new({
+  name = 'BodyLeftPose',
+  run = function(self, object)
+  	result(HexapodPose('body_left'))
+  end
+})
+
+BT.Task:new({
+  name = 'BodyRightPose',
+  run = function(self, object)
+  	result(HexapodPose('body_right'))
+  end
+})
+
+BT.Task:new({
+  name = 'BodyUpPose',
+  run = function(self, object)
+  	result(HexapodPose('body_up'))
+  end
+})
+
+BT.Task:new({
+  name = 'BodyDownPose',
+  run = function(self, object)
+  	result(HexapodPose('body_down'))
+  end
+})
+
+BT.Task:new({
+  name = 'TravoltaRightHighPose',
+  run = function(self, object)
+  	result(HexapodPose('travolta_right_high'))
+  end
+})
+
+
+BT.Task:new({
+  name = 'TravoltaRightLowPose',
+  run = function(self, object)
+  	result(HexapodPose('travolta_right_low'))
+  end
+})
+
+BT.Task:new({
+  name = 'DefaultPose',
+  run = function(self, object)
+  	result(HexapodPose('default'))
+  end
+})
+
